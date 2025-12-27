@@ -1,6 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
+const { requestRide } = require("../controllers/ride.controller");
+
+router.post("/rides/request", auth, requestRide);
 
 router.post("/captain/routes", auth, async (req, res) => {
   try {

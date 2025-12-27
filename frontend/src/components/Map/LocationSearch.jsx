@@ -24,7 +24,7 @@ export default function LocationSearch({ label, onSelect }) {
     fetchPlaces();
   }, [query]);
 
-  // ✅ Only close on outside click
+  //  Only close on outside click
   useEffect(() => {
     const handleOutsideClick = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
@@ -59,7 +59,7 @@ export default function LocationSearch({ label, onSelect }) {
                   label: place.properties.formatted,
                 });
                 setQuery(place.properties.formatted);
-                setResults([]); // ✅ close on select
+                setResults([]); //  close on select
               }}
             >
               {place.properties.formatted}

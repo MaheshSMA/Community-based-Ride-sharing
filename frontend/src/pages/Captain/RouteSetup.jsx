@@ -1,15 +1,20 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import GeoapifyMap from "../../components/Map/GeoapifyMap";
 import API from "../../services/api";
+import LocationSearch from "../../components/Map/LocationSearch";
+import ClickableMap from "../../components/Map/ClickableMap";
 
 export default function RouteSetup() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [activeField, setActiveField] = useState("from");
   const [routes, setRoutes] = useState([]);
 
   const fetchRoutes = async () => {
     const res = await fetch(
-      `https://api.geoapify.com/v1/routing?waypoints=${from}|${to}&mode=drive&alternatives=true&apiKey=${import.meta.env.VITE_GEOAPIFY_KEY}`
+      `https://api.geoapify.com/v1/routing?waypoints=${from}|${to}&mode=drive&alternatives=true&apiKey=${
+        import.meta.env.VITE_GEOAPIFY_KEY
+      }`
     );
     const data = await res.json();
 
@@ -18,6 +23,14 @@ export default function RouteSetup() {
     );
 
     setRoutes(parsed);
+  };
+
+  const handleMapClick = (location) => {
+    if (activeField === "from") {
+      setFrom(location);
+    } else {
+      setTo(location);
+    }
   };
 
   const saveRoutes = async () => {
@@ -33,19 +46,18 @@ export default function RouteSetup() {
       <div className="col-span-1 space-y-4">
         <h2 className="text-xl font-semibold">Set Your Route</h2>
 
-        <input
-          className="w-full px-3 py-2 border rounded-lg"
-          placeholder="From (lat,lng)"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-        />
+        <div onClick={() => setActiveField("from")}>
+          <LocationSearch
+            label="From location"
+            onSelect={(loc) => setFrom(loc)}
+          />
+          {from && <p className="text-xs text-gray-500">📍 {from.label}</p>}
+        </div>
 
-        <input
-          className="w-full px-3 py-2 border rounded-lg"
-          placeholder="To (lat,lng)"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-        />
+        <div onClick={() => setActiveField("to")}>
+          <LocationSearch label="To location" onSelect={(loc) => setTo(loc)} />
+          {to && <p className="text-xs text-gray-500">📍 {to.label}</p>}
+        </div>
 
         <button
           onClick={fetchRoutes}
@@ -63,8 +75,9 @@ export default function RouteSetup() {
       </div>
 
       {/* Map */}
+
       <div className="col-span-2 h-full">
-        <GeoapifyMap routes={routes} />
+        <ClickableMap pickup={from} drop={to} onMapClick={handleMapClick} />
       </div>
     </div>
   );

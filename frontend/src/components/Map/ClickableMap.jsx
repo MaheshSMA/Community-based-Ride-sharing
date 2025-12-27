@@ -18,6 +18,7 @@ export default function ClickableMap({
   pickup,
   drop,
   onMapClick,
+  route,
 }) {
   return (
     <MapContainer
@@ -35,6 +36,8 @@ export default function ClickableMap({
 
       {pickup && <Marker position={[pickup.lat, pickup.lng]} />}
       {drop && <Marker position={[drop.lat, drop.lng]} />}
+      {route && <Polyline positions={route.polyline} />}
+
     </MapContainer>
   );
 }
