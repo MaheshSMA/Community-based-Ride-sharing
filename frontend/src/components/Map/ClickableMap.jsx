@@ -1,4 +1,12 @@
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  useMapEvents,
+  useMap,
+} from "react-leaflet";
+import { useEffect } from "react";
 import "leaflet/dist/leaflet.css";
 
 function MapClickHandler({ onClick }) {
@@ -14,12 +22,21 @@ function MapClickHandler({ onClick }) {
   return null;
 }
 
-export default function ClickableMap({
-  pickup,
-  drop,
-  onMapClick,
-  route,
-}) {
+function FitRouteBounds({ route }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (route?.polyline?.length) {
+      map.fitBounds(route.polyline, {
+        padding: [40, 40],
+      });
+    }
+  }, [route]);
+
+  return null;
+}
+
+export default function ClickableMap({ pickup, drop, onMapClick, route }) {
   return (
     <MapContainer
       center={[12.9716, 77.5946]}
@@ -34,10 +51,26 @@ export default function ClickableMap({
 
       <MapClickHandler onClick={onMapClick} />
 
-      {pickup && <Marker position={[pickup.lat, pickup.lng]} />}
-      {drop && <Marker position={[drop.lat, drop.lng]} />}
-      {route && <Polyline positions={route.polyline} />}
+      {pickup?.lat !== undefined && pickup?.lng !== undefined && (
+        <Marker position={[pickup.lat, pickup.lng]} />
+      )}
 
+      {drop?.lat !== undefined && drop?.lng !== undefined && (
+        <Marker position={[drop.lat, drop.lng]} />
+      )}
+
+      {route?.polyline && (
+        <Polyline
+          positions={route.polyline}
+          pathOptions={{
+            color: "#2563eb",
+            weight: 6,
+            opacity: 0.9,
+          }}
+        />
+      )}
+
+      <FitRouteBounds route={route} />
     </MapContainer>
   );
 }

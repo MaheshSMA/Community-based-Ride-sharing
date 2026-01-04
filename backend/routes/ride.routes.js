@@ -7,17 +7,44 @@ router.post("/rides/request", auth, requestRide);
 
 router.post("/captain/routes", auth, async (req, res) => {
   try {
-    req.user.captainProfile.routes = req.body.routes.map((r, i) => ({
-      polyline: JSON.stringify(r),
-      priority: i + 1,
-    }));
-    req.user.captainProfile.isAvailable = true;
-    await req.user.save();
+    const user = req.user;
 
-    res.json({ message: "Routes saved" });
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { route } = req.body;
+
+    if (!route || !route.polyline) {
+      return res.status(400).json({ message: "Route data missing" });
+    }
+
+    // 🔒 Ensure captain profile exists
+    if (!user.captainProfile) {
+      user.captainProfile = {};
+    }
+
+    if (!Array.isArray(user.captainProfile.routes)) {
+      user.captainProfile.routes = [];
+    }
+
+    user.captainProfile.routes.push({
+      polyline: route.polyline,
+      distance: route.distance,
+      duration: route.duration,
+      priority: user.captainProfile.routes.length + 1,
+    });
+
+    user.captainProfile.isAvailable = true;
+
+    await user.save();
+
+    res.json({ message: "Route saved successfully" });
   } catch (err) {
-    res.status(500).json({ message: "Error saving routes" });
+    console.error("Save captain route error:", err);
+    res.status(500).json({ message: "Error saving route" });
   }
 });
+
 
 module.exports = router;

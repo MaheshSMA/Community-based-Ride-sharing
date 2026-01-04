@@ -1,28 +1,45 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import GeoapifyMap from "../../components/Map/GeoapifyMap";
 import API from "../../services/api";
 import LocationSearch from "../../components/Map/LocationSearch";
 import ClickableMap from "../../components/Map/ClickableMap";
+import socket from "../../services/socket";
+import { fetchRoute } from "../../services/geoapify";
 
 export default function RouteSetup() {
-  const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [from, setFrom] = useState(null);
+  const [to, setTo] = useState(null);
   const [activeField, setActiveField] = useState("from");
-  const [routes, setRoutes] = useState([]);
+  const [route, setRoute] = useState([]);
+  const [matchedRoute, setMatchedRoute] = useState(null);
+
+  useEffect(() => {
+    socket.connect();
+
+    const token = localStorage.getItem("token");
+    const captainId = JSON.parse(atob(token.split(".")[1])).userId;
+
+    socket.emit("captain:join", { captainId });
+
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      socket.emit("captain:location", {
+        captainId,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+    });
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      socket.disconnect();
+    };
+  }, []);
 
   const fetchRoutes = async () => {
-    const res = await fetch(
-      `https://api.geoapify.com/v1/routing?waypoints=${from}|${to}&mode=drive&alternatives=true&apiKey=${
-        import.meta.env.VITE_GEOAPIFY_KEY
-      }`
-    );
-    const data = await res.json();
+    if (!from || !to) return alert("Select both locations");
 
-    const parsed = data.features.map((f) =>
-      f.geometry.coordinates[0].map(([lng, lat]) => [lat, lng])
-    );
-
-    setRoutes(parsed);
+    const r = await fetchRoute(from, to);
+    setRoute(r);
   };
 
   const handleMapClick = (location) => {
@@ -35,9 +52,13 @@ export default function RouteSetup() {
 
   const saveRoutes = async () => {
     await API.post("/captain/routes", {
-      routes,
+      route: {
+        polyline: route.encoded,
+        distance: route.distance,
+        duration: route.duration,
+      },
     });
-    alert("Routes saved");
+    alert("Route saved");
   };
 
   return (
@@ -66,6 +87,13 @@ export default function RouteSetup() {
           Fetch Routes
         </button>
 
+        {route && (
+          <div className="text-sm text-gray-600">
+            <p>Distance: {(route.distance / 1000).toFixed(1)} km</p>
+            <p>ETA: {Math.ceil(route.duration / 60)} mins</p>
+          </div>
+        )}
+
         <button
           onClick={saveRoutes}
           className="w-full bg-green-600 text-white py-2 rounded-lg"
@@ -77,7 +105,12 @@ export default function RouteSetup() {
       {/* Map */}
 
       <div className="col-span-2 h-full">
-        <ClickableMap pickup={from} drop={to} onMapClick={handleMapClick} />
+        <ClickableMap
+          pickup={from}
+          drop={to}
+          route={route}
+          onMapClick={handleMapClick}
+        />
       </div>
     </div>
   );

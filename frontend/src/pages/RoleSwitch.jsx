@@ -8,15 +8,34 @@ export default function RoleSwitch() {
   const startLiveLocation = () => {
     socket.connect();
 
+    //   1. Extract captainId ONCE
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("No token found");
+      return;
+    }
+
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    const captainId = payload.userId;
+
+    if (!captainId) {
+      console.error("captainId missing in token");
+      return;
+    }
+
+    //   2. Join captain room (NOW captainId exists)
+    socket.emit("captain:join", { captainId });
+
+    //   3. Start live location updates
     navigator.geolocation.watchPosition(
       (pos) => {
         socket.emit("captain:location", {
-          captainId: JSON.parse(atob(localStorage.getItem("token").split(".")[1])).userId,
+          captainId,
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
         });
       },
-      (err) => console.error(err),
+      (err) => console.error("Geolocation error:", err),
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
   };
@@ -25,10 +44,8 @@ export default function RoleSwitch() {
     await API.post("/user/switch-role", { role });
 
     if (role === "CAPTAIN") {
-      startLiveLocation();
       navigate("/captain/routes");
     } else {
-      socket.disconnect();
       navigate("/rider/request");
     }
   };

@@ -71,7 +71,10 @@ exports.verifyOTP = async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id },
+      {
+        userId: user._id.toString(), 
+        role: user.activeRole, 
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );

@@ -86,7 +86,6 @@ const UserSchema = new mongoose.Schema(
       },
     },
 
-    // ---------- Community (Post-MVP ready) ----------
     community: {
       type: String, // college / office id later
     },

@@ -56,6 +56,7 @@ export default function RideRequest() {
         >
           Preview Route
         </button>
+
         {route && (
           <div className="text-sm text-gray-600">
             <p>Distance: {(route.distance / 1000).toFixed(1)} km</p>
@@ -103,10 +104,9 @@ export default function RideRequest() {
         </button>
       </div>
 
-
       {/* Map */}
       <div className="col-span-2 h-full">
-        <ClickableMap pickup={pickup} drop={drop} onMapClick={handleMapClick} />
+        <ClickableMap pickup={pickup} drop={drop} route={route} onMapClick={handleMapClick} />
       </div>
     </div>
   );

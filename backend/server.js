@@ -3,6 +3,8 @@ const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
+const { captainLocations } = require("./store/captainLocation.store");
+const { setIO } = require("./socket");
 
 const PORT = process.env.PORT || 5000;
 
@@ -14,24 +16,38 @@ const io = new Server(server, {
   },
 });
 
+setIO(io);
 // In-memory store (later Redis)
-const captainLocations = new Map();
+// const captainLocations = new Map();
 
 io.on("connection", (socket) => {
-  console.log("🔌 Captain connected:", socket.id);
+  console.log("🔌 Socket connected:", socket.id);
 
-  socket.on("captain:location", (data) => {
-    const { captainId, lat, lng } = data;
+  // Captain joins personal room
+  socket.on("captain:join", ({ captainId }) => {
+    socket.join(`captain:${captainId}`);
+  });
 
-    captainLocations.set(captainId, {
-      lat,
-      lng,
-      updatedAt: Date.now(),
+  socket.on("captain:location", ({ captainId, lat, lng }) => {
+    captainLocations.set(captainId, { lat, lng });
+  });
+
+  // Rider joins ride room
+  socket.on("ride:join", ({ rideId }) => {
+    socket.join(`ride:${rideId}`);
+  });
+
+  // Captain decision
+  socket.on("ride:decision", ({ rideId, captainId, decision, overlap }) => {
+    io.to(`ride:${rideId}`).emit("ride:update", {
+      captainId,
+      decision, // ACCEPTED / REJECTED
+      overlap,
     });
   });
 
-  socket.on("disconnect", () => {
-    console.log("Captain disconnected:", socket.id);
+  socket.on("disconnect", (reason) => {
+    console.log("Socket disconnected:", socket.id, reason);
   });
 });
 
@@ -40,5 +56,3 @@ connectDB().then(() => {
     console.log(`Server running on port ${PORT}`);
   });
 });
-
-module.exports = { io, captainLocations };

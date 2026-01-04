@@ -1,34 +1,33 @@
 const Ride = require("../models/Ride.model");
+const { findEligibleCaptains } = require("../services/matching.service");
+const { getIO } = require("../socket");
+
+// const { io } = require("../server");
+
 
 exports.requestRide = async (req, res) => {
-  try {
-    const {
-      pickup,
-      drop,
-      seatsRequired,
-      preferences,
-      route,
-    } = req.body;
+  const io = getIO(); // ✅ always fresh, always initialized
 
-    if (!pickup || !drop || !seatsRequired || !route) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
+  const ride = await Ride.create({
+    rider: req.user._id,
+    ...req.body,
+    status: "MATCHING",
+  });
 
-    const ride = await Ride.create({
-      rider: req.user._id,
-      pickup,
-      drop,
-      seatsRequired,
-      preferences,
-      route,
-      status: "MATCHING",
-    });
+  const matches = await findEligibleCaptains(ride);
+  console.log("MATCHES FOUND:", matches);
 
-    res.json({
-      message: "Ride request created",
+  matches.forEach((m) => {
+    io.to(`captain:${m.captainId}`).emit("ride:request", {
       rideId: ride._id,
+      pickup: ride.pickup,
+      drop: ride.drop,
+      overlap: m.overlap,
+      seatsRequired: ride.seatsRequired,
+      matchedRoute: m.matchedRoute,
     });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to create ride" });
-  }
+  });
+
+  res.json({ rideId: ride._id });
 };
+

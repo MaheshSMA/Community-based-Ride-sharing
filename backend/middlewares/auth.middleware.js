@@ -9,9 +9,13 @@ module.exports = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    // ✅ READ token sent by client
     const token = authHeader.split(" ")[1];
+
+    // ✅ VERIFY token (DO NOT SIGN)
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
+    // decoded MUST contain userId
     const user = await User.findById(decoded.userId).select("-otp");
     if (!user) {
       return res.status(401).json({ message: "User not found" });
