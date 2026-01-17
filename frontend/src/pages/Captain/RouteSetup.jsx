@@ -5,8 +5,13 @@ import LocationSearch from "../../components/Map/LocationSearch";
 import ClickableMap from "../../components/Map/ClickableMap";
 import socket from "../../services/socket";
 import { fetchRoute } from "../../services/geoapify";
+import { useNavigate } from "react-router-dom";
+
+
 
 export default function RouteSetup() {
+  const navigate = useNavigate();
+
   const [from, setFrom] = useState(null);
   const [to, setTo] = useState(null);
   const [activeField, setActiveField] = useState("from");
@@ -22,6 +27,7 @@ export default function RouteSetup() {
     socket.emit("captain:join", { captainId });
 
     const watchId = navigator.geolocation.watchPosition((pos) => {
+      console.log("Captain location:", pos.coords.latitude, pos.coords.longitude);
       socket.emit("captain:location", {
         captainId,
         lat: pos.coords.latitude,
@@ -31,7 +37,7 @@ export default function RouteSetup() {
 
     return () => {
       navigator.geolocation.clearWatch(watchId);
-      socket.disconnect();
+      // socket.disconnect();
     };
   }, []);
 
@@ -66,6 +72,13 @@ export default function RouteSetup() {
       {/* Controls */}
       <div className="col-span-1 space-y-4">
         <h2 className="text-xl font-semibold">Set Your Route</h2>
+
+        <button
+          onClick={() => navigate("/captain/requests")}
+          className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
+        >
+          View Incoming Requests
+        </button>
 
         <div onClick={() => setActiveField("from")}>
           <LocationSearch

@@ -4,6 +4,8 @@ import RoleSwitch from "./pages/RoleSwitch";
 import RouteSetup from "./pages/Captain/RouteSetup";
 import { isLoggedIn } from "./utils/auth";
 import RideRequest from "./pages/Rider/RideRequest";
+import IncomingRequests from "./pages/Captain/IncomingRequests";
+
 
 function ProtectedRoute({ children }) {
   if (!isLoggedIn()) {
@@ -41,8 +43,17 @@ function App() {
           <ProtectedRoute>
             <RideRequest />
           </ProtectedRoute>
-  }
-/>
+        }
+      />
+
+      <Route
+        path="/captain/requests"
+        element={
+          <ProtectedRoute>
+            <IncomingRequests />
+          </ProtectedRoute>
+        }
+      />
 
 
 
