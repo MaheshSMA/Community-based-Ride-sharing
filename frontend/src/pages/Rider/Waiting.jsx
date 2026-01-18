@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
+import RideTrackingMap from "../../components/Map/RideTrackingMap";
+
 
 export default function Waiting() {
   const { rideId } = useParams();
@@ -9,6 +11,8 @@ export default function Waiting() {
   const [acceptedCaptain, setAcceptedCaptain] = useState(null);
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState("Rider");
+  const [riderLocation, setRiderLocation] = useState(null);
+  const [captainLocation, setCaptainLocation] = useState(null);
 
   useEffect(() => {
     // Get user info from token
@@ -23,6 +27,62 @@ export default function Waiting() {
       }
     }
   }, []);
+
+  // Get rider's current location and emit it
+  useEffect(() => {
+    if (!userId) return;
+    if(!rideId) console.error("No rideId available for emitting rider location");
+
+    // Get current location
+    if (navigator.geolocation) {
+      console.log("entered navigator.geolocation");
+      console.log("rideId:", rideId);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setRiderLocation({ lat: latitude, lng: longitude });
+          
+          // Emit rider location to socket
+          if (rideId) {
+            socket.emit("rider:location", {
+              rideId,
+              userId,
+              lat: latitude,
+              lng: longitude,
+            });
+          }
+        },
+        (error) => {
+          console.error("Error getting location:", error);
+        }
+      );
+
+      // Update location every 5 seconds
+      const locationInterval = setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setRiderLocation({ lat:12.9757079 + latitude, lng: 77.5728757 + longitude });
+            console.log("rider location updated:", { riderLocation: { lat: latitude, lng: longitude } });
+            
+            if (rideId) {
+              socket.emit("rider:location", {
+                rideId,
+                userId,
+                lat: latitude + 12.9757079,
+                lng: longitude + 77.5728757,
+              });
+            }
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+          }
+        );
+      }, 5000);
+
+      return () => clearInterval(locationInterval);
+    }
+  }, [userId, rideId]);
 
   useEffect(() => {
     if (!rideId) {
@@ -55,9 +115,16 @@ export default function Waiting() {
       }
     });
 
+    // Listen for captain location updates
+    socket.on("captain:location", (data) => {
+      console.log("📍 Captain location updated:", data);
+      setCaptainLocation({ lat: data.lat, lng: data.lng });
+    });
+
     return () => {
       console.log("cleaning up waiting component");
       socket.off("ride:update");
+      socket.off("captain:location");
     };
   }, [rideId, acceptedCaptain]);
 
@@ -66,17 +133,30 @@ export default function Waiting() {
       <h2 className="text-xl font-semibold">Captains Responding</h2>
       <p className="text-sm text-gray-500 mb-4">Ride ID: {rideId}</p>
 
-      {/* Show chat if captain accepted */}
+      {/* Show chat and map if captain accepted */}
       {acceptedCaptain && (
-        <div className="mb-6">
-          <ChatWindow
-            rideId={rideId}
-            captainId={acceptedCaptain}
-            userId={userId}
-            userName={userName}
-            otherUserName="Captain"
-          />
-        </div>
+        <>
+          {/* Chat Window */}
+          <div className="border rounded-lg p-4 bg-white shadow-lg">
+            <h3 className="font-semibold text-lg mb-3">Chat with Captain</h3>
+            <ChatWindow
+              rideId={rideId}
+              captainId={acceptedCaptain}
+              userId={userId}
+              userName={userName}
+              otherUserName="Captain"
+            />
+          </div>
+
+          {/* Ride Tracking Map */}
+          <div className="border rounded-lg p-4 bg-white shadow-lg">
+            <h3 className="font-semibold text-lg mb-3">Ride Tracking</h3>
+            <RideTrackingMap 
+              riderLocation={riderLocation} 
+              captainLocation={captainLocation} 
+            />
+          </div>
+        </>
       )}
 
       {/* Responses List */}

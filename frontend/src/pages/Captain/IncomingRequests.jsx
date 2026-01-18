@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
+import RideTrackingMap from "../../components/Map/RideTrackingMap";
 
 
 export default function IncomingRequests() {
   const [requests, setRequests] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // { rideId, riderId }
   const [captainId, setCaptainId] = useState(null); // Add this line
+  const [riderLocation, setRiderLocation] = useState(null);
+  const [captainLocation, setCaptainLocation] = useState(null);
 
 
   useEffect(() => {
@@ -56,12 +59,30 @@ export default function IncomingRequests() {
       
       // Remove any existing listeners first to avoid duplicates
       socket.off("ride:request");
+      socket.off("rider:location");
       
       // Set up the listener
       socket.on("ride:request", (data) => {
         // console.log("✅✅✅ RECEIVED RIDE REQUEST:", data);
         setRequests((prev) => [...prev, data]);
       });
+
+      
+
+
+      // Listen for captain location updates
+      socket.on("captain:location", (data) => {
+        console.log("📍 Captain location updated:", data);
+        setCaptainLocation({ lat: data.lat, lng: data.lng });
+        console.log("updated captain location state in incoming request:", { lat: data.lat, lng: data.lng });
+      });
+
+      // Listen for rider location updates
+      // socket.on("rider:location", (data) => {
+      //   console.log("📍 Rider location update received in incoming requests:", data);
+      //   console.log("📍 Rider location updated:", data);
+      //   setRiderLocation({ lat: data.lat, lng: data.lng });
+      // });
 
       // Debug: Listen to all events
       socket.onAny((eventName, ...args) => {
@@ -82,6 +103,8 @@ export default function IncomingRequests() {
       });
     };
 
+    
+
     setupConnection();
 
 
@@ -98,6 +121,8 @@ export default function IncomingRequests() {
     return () => {
       console.log("🔵 Cleaning up IncomingRequests");
       socket.off("ride:request");
+      socket.off("captain:location");
+      // socket.off("rider:location");
       socket.offAny();
     };
 
@@ -109,6 +134,62 @@ export default function IncomingRequests() {
 
     // return () => socket.off("ride:request");
   }, []);
+
+  // Add this useEffect after the socket listeners setup
+    useEffect(() => {
+      if (!activeChat || !captainId) return;
+
+      // Join the ride room to listen for rider location
+      socket.emit("ride:join", { rideId: activeChat.rideId });
+
+      // Listen for rider location updates (only when chat is active)
+      socket.on("rider:location", (data) => {
+        console.log("📍 Rider location updated:", data);
+        setRiderLocation({ lat: data.lat, lng: data.lng });
+      });
+
+      // Get captain's current location and emit it
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            setCaptainLocation({ lat: latitude, lng: longitude });
+            
+            socket.emit("captain:location", {
+              rideId: activeChat.rideId,
+              captainId,
+              lat: latitude,
+              lng: longitude,
+            });
+          },
+          (error) => {
+            console.error("Error getting captain location:", error);
+          }
+        );
+
+        // Update location every 5 seconds while chat is active
+        const locationInterval = setInterval(() => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              setCaptainLocation({ lat: latitude, lng: longitude });
+              
+              socket.emit("captain:location", {
+                rideId: activeChat.rideId,
+                captainId,
+                lat: latitude,
+                lng: longitude,
+              });
+            },
+            (error) => {
+              console.error("Error getting captain location:", error);
+            }
+          );
+        }, 5000);
+
+        return () => clearInterval(locationInterval);
+      }
+    }, [activeChat, captainId]);
 
   const respond = (rideId, decision, overlap) => {
     console.log("entered respond");
@@ -185,36 +266,47 @@ export default function IncomingRequests() {
         </div>
       )}
 
+      {/* ✅ Ride Tracking Map - Show below chat */}
+      {activeChat && (
+        <div className="border rounded-lg p-4 bg-white shadow-lg">
+          <h3 className="font-semibold text-lg mb-3">Ride Tracking</h3>
+          <RideTrackingMap 
+            riderLocation={riderLocation} 
+            captainLocation={captainLocation} 
+          />
+        </div>
+      )}
+
       {/* Only show requests if no active chat */}
-    {!activeChat && (
-      <>
-        {requests.map((r) => (
-          <div
-            key={r.rideId}
-            className="border p-4 rounded-lg shadow"
-          >
-            <p>Overlap: {r.overlap.toFixed(1)}%</p>
-            <p>Seats needed: {r.seatsRequired}</p>
+      {!activeChat && (
+        <>
+          {requests.map((r) => (
+            <div
+              key={r.rideId}
+              className="border p-4 rounded-lg shadow"
+            >
+              <p>Overlap: {r.overlap.toFixed(1)}%</p>
+              <p>Seats needed: {r.seatsRequired}</p>
 
-            <div className="flex gap-3 mt-3">
-              <button
-                onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
-                className="bg-green-600 text-white px-4 py-1 rounded"
-              >
-                Accept
-              </button>
+              <div className="flex gap-3 mt-3">
+                <button
+                  onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
+                  className="bg-green-600 text-white px-4 py-1 rounded"
+                >
+                  Accept
+                </button>
 
-              <button
-                onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
-                className="bg-red-600 text-white px-4 py-1 rounded"
-              >
-                Reject
-              </button>
+                <button
+                  onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
+                  className="bg-red-600 text-white px-4 py-1 rounded"
+                >
+                  Reject
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
-      </>
-    )}
+          ))}
+        </>
+      )}
 
     </div>
   );
