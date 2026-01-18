@@ -185,31 +185,36 @@ export default function IncomingRequests() {
         </div>
       )}
 
-      {requests.map((r) => (
-        <div
-          key={r.rideId}
-          className="border p-4 rounded-lg shadow"
-        >
-          <p>Overlap: {r.overlap.toFixed(1)}%</p>
-          <p>Seats needed: {r.seatsRequired}</p>
+      {/* Only show requests if no active chat */}
+    {!activeChat && (
+      <>
+        {requests.map((r) => (
+          <div
+            key={r.rideId}
+            className="border p-4 rounded-lg shadow"
+          >
+            <p>Overlap: {r.overlap.toFixed(1)}%</p>
+            <p>Seats needed: {r.seatsRequired}</p>
 
-          <div className="flex gap-3 mt-3">
-            <button
-              onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
-              className="bg-green-600 text-white px-4 py-1 rounded"
-            >
-              Accept
-            </button>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
+                className="bg-green-600 text-white px-4 py-1 rounded"
+              >
+                Accept
+              </button>
 
-            <button
-              onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
-              className="bg-red-600 text-white px-4 py-1 rounded"
-            >
-              Reject
-            </button>
+              <button
+                onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
+                className="bg-red-600 text-white px-4 py-1 rounded"
+              >
+                Reject
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </>
+    )}
 
     </div>
   );
