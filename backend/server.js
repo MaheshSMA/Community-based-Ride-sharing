@@ -49,20 +49,20 @@ io.on("connection", (socket) => {
 
   // Captain decision
   // In server.js, update the ride:decision handler:
-  socket.on("ride:decision", ({ rideId, captainId, decision, overlap }) => {
+  socket.on("ride:decision", ({ rideId, captainId, decision, overlap },callback) => {
   console.log("📥 Received ride:decision event");
   console.log("📥 Data:", { rideId, captainId, decision, overlap });
   console.log("📥 Socket ID:", socket.id);
 
-  // if (callback) {
-  //   callback({ 
-  //     success: true, 
-  //     message: "Decision received",
-  //     rideId,
-  //     decision 
-  //   });
-  //   console.log("✅ Acknowledgment sent to client");
-  // }
+  if (callback && typeof callback === "function") {
+    callback({ 
+      success: true, 
+      message: "Decision received",
+      rideId,
+      decision 
+    });
+    console.log("✅ Acknowledgment sent to client");
+  }
   
   io.to(`ride:${rideId}`).emit("ride:update", {
     captainId,
@@ -71,6 +71,34 @@ io.on("connection", (socket) => {
   });
   
   console.log("✅ Sent ride:update to room:", `ride:${rideId}`);
+  });
+
+  // Chat: Join chat room
+  socket.on("chat:join", ({ rideId, captainId, userId }) => {
+    const chatRoom = `chat:${rideId}:${captainId}`;
+    socket.join(chatRoom);
+    console.log(`✅ User ${userId} joined chat room: ${chatRoom}`);
+    
+    // Notify other party that someone joined
+    socket.to(chatRoom).emit("chat:userJoined", { userId });
+  });
+
+  // Chat: Send message
+  socket.on("chat:message", ({ rideId, captainId, senderId, message, senderName }) => {
+    const chatRoom = `chat:${rideId}:${captainId}`;
+    
+    const messageData = {
+      rideId,
+      captainId,
+      senderId,
+      senderName: senderName || "User",
+      message,
+      timestamp: new Date().toISOString(),
+    };
+    
+    // Broadcast to all in the chat room (including sender)
+    io.to(chatRoom).emit("chat:message", messageData);
+    console.log(`💬 Message sent in ${chatRoom}:`, messageData);
   });
 
   socket.on("disconnect", (reason) => {
