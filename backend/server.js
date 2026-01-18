@@ -47,6 +47,29 @@ io.on("connection", (socket) => {
     socket.join(`ride:${rideId}`);
   });
 
+  socket.on("rider:location", ({ rideId, userId, lat, lng }) => {
+  console.log(`📍 Rider location received for ride ${rideId}:`, { lat, lng });
+  
+  // Broadcast to all in the ride room
+  io.to(`ride:${rideId}`).emit("rider:location", {
+      userId,
+      lat,
+      lng,
+    });
+  });
+
+  // Handle captain location updates
+  socket.on("captain:location", ({ rideId, captainId, lat, lng }) => {
+    console.log(`📍 Captain location received for ride ${rideId}:`, { lat, lng });
+    
+    // Broadcast to all in the ride room
+    io.to(`ride:${rideId}`).emit("captain:location", {
+      captainId,
+      lat,
+      lng,
+    });
+  });
+
   // Captain decision
   // In server.js, update the ride:decision handler:
   socket.on("ride:decision", ({ rideId, captainId, decision, overlap },callback) => {
