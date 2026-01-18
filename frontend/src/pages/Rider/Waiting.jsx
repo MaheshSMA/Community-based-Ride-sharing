@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
 import RideTrackingMap from "../../components/Map/RideTrackingMap";
-
+import quickrideImg from "../../assets/quickride-share.png";
 
 export default function Waiting() {
   const { rideId } = useParams();
@@ -129,59 +129,78 @@ export default function Waiting() {
   }, [rideId, acceptedCaptain]);
 
   return (
-    <div className="p-6">
-      <h2 className="text-xl font-semibold">Captains Responding</h2>
-      <p className="text-sm text-gray-500 mb-4">Ride ID: {rideId}</p>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={quickrideImg}
+          alt="" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
 
-      {/* Show chat and map if captain accepted */}
-      {acceptedCaptain && (
-        <>
-          {/* Chat Window */}
-          <div className="border rounded-lg p-4 bg-white shadow-lg">
-            <h3 className="font-semibold text-lg mb-3">Chat with Captain</h3>
-            <ChatWindow
-              rideId={rideId}
-              captainId={acceptedCaptain}
-              userId={userId}
-              userName={userName}
-              otherUserName="Captain"
-            />
-          </div>
-
-          {/* Ride Tracking Map */}
-          <div className="border rounded-lg p-4 bg-white shadow-lg">
-            <h3 className="font-semibold text-lg mb-3">Ride Tracking</h3>
-            <RideTrackingMap 
-              riderLocation={riderLocation} 
-              captainLocation={captainLocation} 
-            />
-          </div>
-        </>
-      )}
-
-      {/* Responses List */}
-      {responses.length === 0 ? (
-        <div className="mt-4">
-          <p className="text-gray-500">Waiting for captains to respond...</p>
-          <div className="mt-4 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mt-2"></div>
-          </div>
+      {/* Content */}
+      <div className="relative z-10 p-6 space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">Captains Responding</h2>
+          <p className="text-sm text-gray-600 mt-2">Ride ID: {rideId}</p>
         </div>
-      ) : (
-        <div>
-          <h3 className="text-lg font-semibold mb-3">Responses:</h3>
-          {responses.map((r, idx) => (
-            <div key={idx} className="border p-3 mt-3 rounded">
-              <p className="font-semibold">Captain: {r.captainId}</p>
-              <p className={r.decision === "ACCEPTED" ? "text-green-600" : "text-red-600"}>
-                Status: {r.decision}
-              </p>
-              <p>Overlap: {r.overlap.toFixed(1)}%</p>
+
+        {/* Show chat and map if captain accepted */}
+        {acceptedCaptain && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Chat Window */}
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+              <h3 className="font-bold text-lg text-gray-900 mb-4">Chat with Captain</h3>
+              <ChatWindow
+                rideId={rideId}
+                captainId={acceptedCaptain}
+                userId={userId}
+                userName={userName}
+                otherUserName="Captain"
+              />
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Ride Tracking Map */}
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+              <h3 className="font-bold text-lg text-gray-900 mb-4">Ride Tracking</h3>
+              <div className="rounded-xl overflow-hidden border border-gray-200">
+                <RideTrackingMap 
+                  riderLocation={riderLocation} 
+                  captainLocation={captainLocation} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Responses List */}
+        {responses.length === 0 ? (
+          <div className="bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
+            <p className="text-gray-600 text-center text-lg">Waiting for captains to respond...</p>
+            <div className="mt-6 animate-pulse space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Responses:</h3>
+            <div className="space-y-3">
+              {responses.map((r, idx) => (
+                <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                  <p className="font-semibold text-gray-900">Captain: {r.captainId}</p>
+                  <p className={r.decision === "ACCEPTED" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                    Status: {r.decision}
+                  </p>
+                  <p className="text-gray-700">Overlap: {r.overlap.toFixed(1)}%</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import API from "../services/api";
 import { useNavigate } from "react-router-dom";
 import socket from "../services/socket";
+import quickrideImg from "../assets/quickride-share.png";
 
 export default function RoleSwitch() {
   const navigate = useNavigate();
@@ -51,20 +52,37 @@ export default function RoleSwitch() {
   };
 
   return (
-    <div className="flex gap-4 justify-center mt-20">
-      <button
-        onClick={() => switchRole("RIDER")}
-        className="px-6 py-2 bg-indigo-600 text-white rounded-lg"
-      >
-        Rider
-      </button>
+    <div className="min-h-screen flex items-center justify-center px-4 relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={quickrideImg}
+          alt="" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
 
-      <button
-        onClick={() => switchRole("CAPTAIN")}
-        className="px-6 py-2 bg-teal-600 text-white rounded-lg"
-      >
-        Captain
-      </button>
+      {/* Content */}
+      <div className="flex flex-col items-center gap-6 relative z-10">
+        <h2 className="text-3xl font-bold text-white mb-4">Choose Your Role</h2>
+        
+        <div className="flex gap-6">
+          <button
+            onClick={() => switchRole("RIDER")}
+            className="px-12 py-4 bg-white text-gray-900 font-semibold rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-xl"
+          >
+            Rider
+          </button>
+
+          <button
+            onClick={() => switchRole("CAPTAIN")}
+            className="px-12 py-4 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 shadow-xl"
+          >
+            Captain
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

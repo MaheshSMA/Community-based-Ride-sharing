@@ -51,36 +51,49 @@ export default function ChatWindow({ rideId, captainId, userId, userName, otherU
   };
 
   return (
-    <div className="flex flex-col h-96 border rounded-lg shadow-lg">
+    <div className="flex flex-col h-96 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Chat Header */}
-      <div className="bg-blue-600 text-white p-3 rounded-t-lg">
-        <h3 className="font-semibold">Chat with {otherUserName || "Captain"}</h3>
+      <div className="bg-black text-white p-4 rounded-t-2xl">
+        <h3 className="font-semibold text-lg">Chat with {otherUserName || "Captain"}</h3>
       </div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
         {messages.length === 0 ? (
-          <p className="text-gray-500 text-center">No messages yet. Start the conversation!</p>
+          <p className="text-gray-500 text-center">
+            No messages yet. Start the conversation!
+          </p>
         ) : (
           messages.map((msg, idx) => {
             const isOwnMessage = msg.senderId === userId;
+
             return (
               <div
                 key={idx}
-                className={`mb-3 flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                className={`mb-3 flex w-full ${
+                  isOwnMessage ? "justify-end" : "justify-start"
+                }`}
               >
                 <div
                   className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
                     isOwnMessage
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-800 border"
+                      ? "bg-black text-white rounded-br-none"
+                      : "bg-white text-gray-800 border border-gray-200 shadow-sm rounded-bl-none"
                   }`}
                 >
                   {!isOwnMessage && (
-                    <p className="text-xs font-semibold mb-1">{msg.senderName}</p>
+                    <p className="text-xs font-semibold mb-1 text-gray-600">
+                      {msg.senderName}
+                    </p>
                   )}
+
                   <p className="text-sm">{msg.message}</p>
-                  <p className={`text-xs mt-1 ${isOwnMessage ? "text-blue-100" : "text-gray-500"}`}>
+
+                  <p
+                    className={`text-xs mt-1 ${
+                      isOwnMessage ? "text-gray-300" : "text-gray-500"
+                    }`}
+                  >
                     {new Date(msg.timestamp).toLocaleTimeString()}
                   </p>
                 </div>
@@ -91,24 +104,26 @@ export default function ChatWindow({ rideId, captainId, userId, userName, otherU
         <div ref={messagesEndRef} />
       </div>
 
+
+
       {/* Message Input */}
-      <form onSubmit={sendMessage} className="border-t p-3 bg-white rounded-b-lg">
+      <form onSubmit={sendMessage} className="border-t border-gray-200 p-4 bg-white rounded-b-2xl">
         <div className="flex gap-2">
           <input
             type="text"
             value={messageInput}
             onChange={(e) => setMessageInput(e.target.value)}
             placeholder="Type a message..."
-            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all duration-200"
           />
           <button
             type="submit"
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+            className="bg-black text-white font-semibold px-6 py-2.5 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-200"
           >
             Send
           </button>
         </div>
       </form>
     </div>
-  );
+  );  
 }

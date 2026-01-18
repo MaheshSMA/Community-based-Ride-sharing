@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
 import RideTrackingMap from "../../components/Map/RideTrackingMap";
-
+import quickrideImg from "../../assets/quickride-share.png";
 
 export default function IncomingRequests() {
   const [requests, setRequests] = useState([]);
@@ -241,73 +241,98 @@ export default function IncomingRequests() {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">Incoming Ride Requests</h2>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={quickrideImg}
+          alt="" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
 
-      {/* ✅ Chat Window - Show at top when active */}
-      {activeChat && captainId && (
-        <div className="mb-6 border rounded-lg p-4 bg-white shadow-lg">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-semibold text-lg">Active Chat</h3>
-            <button
-              onClick={() => setActiveChat(null)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ✕ Close
-            </button>
-          </div>
-          <ChatWindow
-            rideId={activeChat.rideId}
-            captainId={activeChat.captainId}
-            userId={captainId}
-            userName="Captain"
-            otherUserName="Rider"
-          />
+      {/* Content */}
+      <div className="relative z-10 p-6 space-y-6">
+        <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900">Incoming Ride Requests</h2>
         </div>
-      )}
 
-      {/* ✅ Ride Tracking Map - Show below chat */}
-      {activeChat && (
-        <div className="border rounded-lg p-4 bg-white shadow-lg">
-          <h3 className="font-semibold text-lg mb-3">Ride Tracking</h3>
-          <RideTrackingMap 
-            riderLocation={riderLocation} 
-            captainLocation={captainLocation} 
-          />
-        </div>
-      )}
-
-      {/* Only show requests if no active chat */}
-      {!activeChat && (
-        <>
-          {requests.map((r) => (
-            <div
-              key={r.rideId}
-              className="border p-4 rounded-lg shadow"
-            >
-              <p>Overlap: {r.overlap.toFixed(1)}%</p>
-              <p>Seats needed: {r.seatsRequired}</p>
-
-              <div className="flex gap-3 mt-3">
+        {/* ✅ Chat Window & Ride Tracking - Side by side when active */}
+        {activeChat && captainId && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Chat Window */}
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-lg text-gray-900">Active Chat</h3>
                 <button
-                  onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
-                  className="bg-green-600 text-white px-4 py-1 rounded"
+                  onClick={() => setActiveChat(null)}
+                  className="text-gray-600 hover:text-gray-900 transition-colors duration-200 text-xl font-semibold"
                 >
-                  Accept
-                </button>
-
-                <button
-                  onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
-                  className="bg-red-600 text-white px-4 py-1 rounded"
-                >
-                  Reject
+                  ✕ Close
                 </button>
               </div>
+              <ChatWindow
+                rideId={activeChat.rideId}
+                captainId={activeChat.captainId}
+                userId={captainId}
+                userName="Captain"
+                otherUserName="Rider"
+              />
             </div>
-          ))}
-        </>
-      )}
 
+            {/* Ride Tracking Map */}
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+              <h3 className="font-bold text-lg text-gray-900 mb-4">Ride Tracking</h3>
+              <div className="rounded-xl overflow-hidden border border-gray-200">
+                <RideTrackingMap 
+                  riderLocation={riderLocation} 
+                  captainLocation={captainLocation} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Only show requests if no active chat */}
+        {!activeChat && (
+          <>
+            {requests.map((r) => (
+              <div
+                key={r.rideId}
+                className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 hover:shadow-xl transition-all duration-200"
+              >
+                <div className="space-y-2 mb-4">
+                  <p className="text-gray-700">
+                    <span className="text-gray-600">Overlap:</span> 
+                    <span className="font-bold text-gray-900 ml-2">{r.overlap.toFixed(1)}%</span>
+                  </p>
+                  <p className="text-gray-700">
+                    <span className="text-gray-600">Seats needed:</span> 
+                    <span className="font-bold text-gray-900 ml-2">{r.seatsRequired}</span>
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
+                    className="flex-1 bg-green-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200"
+                  >
+                    Accept
+                  </button>
+
+                  <button
+                    onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
+                    className="flex-1 bg-red-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all duration-200"
+                  >
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
     </div>
   );
 }

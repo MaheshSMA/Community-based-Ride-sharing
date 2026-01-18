@@ -6,6 +6,8 @@ import ClickableMap from "../../components/Map/ClickableMap";
 import socket from "../../services/socket";
 import { fetchRoute } from "../../services/geoapify";
 import { useNavigate } from "react-router-dom";
+import quickrideImg from "../../assets/quickride-share.png"; 
+import leftpanelbg from "../../assets/left_panel_bg.jpg"; 
 
 
 
@@ -68,62 +70,90 @@ export default function RouteSetup() {
   };
 
   return (
-    <div className="p-6 grid grid-cols-3 gap-4 h-screen">
-      {/* Controls */}
-      <div className="col-span-1 space-y-4">
-        <h2 className="text-xl font-semibold">Set Your Route</h2>
-
-        <button
-          onClick={() => navigate("/captain/requests")}
-          className="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700"
-        >
-          View Incoming Requests
-        </button>
-
-        <div onClick={() => setActiveField("from")}>
-          <LocationSearch
-            label="From location"
-            onSelect={(loc) => setFrom(loc)}
-          />
-          {from && <p className="text-xs text-gray-500">📍 {from.label}</p>}
-        </div>
-
-        <div onClick={() => setActiveField("to")}>
-          <LocationSearch label="To location" onSelect={(loc) => setTo(loc)} />
-          {to && <p className="text-xs text-gray-500">📍 {to.label}</p>}
-        </div>
-
-        <button
-          onClick={fetchRoutes}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg"
-        >
-          Fetch Routes
-        </button>
-
-        {route && (
-          <div className="text-sm text-gray-600">
-            <p>Distance: {(route.distance / 1000).toFixed(1)} km</p>
-            <p>ETA: {Math.ceil(route.duration / 60)} mins</p>
-          </div>
-        )}
-
-        <button
-          onClick={saveRoutes}
-          className="w-full bg-green-600 text-white py-2 rounded-lg"
-        >
-          Save Selected Routes
-        </button>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={quickrideImg} 
+          alt="" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
       </div>
 
-      {/* Map */}
+      {/* Content */}
+      <div className="relative z-10 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-3rem)]">
+          {/* Controls */}
+          <div className="col-span-1 space-y-4 bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 h-full relative overflow-hidden flex flex-col">
+            {/* Background Image */}
+            <div className="absolute inset-0 z-0 opacity-40">
+              <img 
+                src={leftpanelbg} 
+                alt="" 
+                className="w-full h-full object-cover"
+              />
+            </div>
 
-      <div className="col-span-2 h-full">
-        <ClickableMap
-          pickup={from}
-          drop={to}
-          route={route}
-          onMapClick={handleMapClick}
-        />
+            {/* Content */}
+            <div className="relative z-10 flex-1 overflow-y-auto space-y-4">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Set Your Route
+              </h2>
+
+              <button
+                onClick={() => navigate("/captain/requests")}
+                className="w-full bg-green-500 text-white font-semibold py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2 transition-all duration-200"
+              >
+                View Incoming Requests
+              </button>
+
+              <div onClick={() => setActiveField("from")} className="space-y-2">
+                <LocationSearch
+                  label="From location"
+                  onSelect={(loc) => setFrom(loc)}
+                />
+                {from && <p className="text-xs text-gray-600 px-2 bg-gray-50 py-1.5 rounded-lg">📍 {from.label}</p>}
+              </div>
+
+              <div onClick={() => setActiveField("to")} className="space-y-2">
+                <LocationSearch label="To location" onSelect={(loc) => setTo(loc)} />
+                {to && <p className="text-xs text-gray-600 px-2 bg-gray-50 py-1.5 rounded-lg">📍 {to.label}</p>}
+              </div>
+
+              <button
+                onClick={fetchRoutes}
+                className="w-full bg-black text-white font-semibold py-3 rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-200"
+              >
+                Fetch Routes
+              </button>
+
+              {route && (
+                <div className="text-sm text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-1">
+                  <p className="font-medium">Distance: {(route.distance / 1000).toFixed(1)} km</p>
+                  <p className="font-medium">ETA: {Math.ceil(route.duration / 60)} mins</p>
+                </div>
+              )}
+
+              <button
+                onClick={saveRoutes}
+                className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200"
+              >
+                Save Selected Routes
+              </button>
+            </div>
+          </div>
+
+          {/* Map */}
+          <div className="col-span-1 lg:col-span-2 h-full rounded-2xl overflow-hidden shadow-2xl border border-gray-200">
+            <ClickableMap
+              pickup={from}
+              drop={to}
+              route={route}
+              onMapClick={handleMapClick}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
