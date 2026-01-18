@@ -3,8 +3,10 @@ import LocationSearch from "../../components/Map/LocationSearch";
 import ClickableMap from "../../components/Map/ClickableMap";
 import { fetchRoute } from "../../services/geoapify";
 import API from "../../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function RideRequest() {
+  const navigate = useNavigate();
   const [pickup, setPickup] = useState(null);
   const [drop, setDrop] = useState(null);
   const [activeField, setActiveField] = useState("pickup");
@@ -85,18 +87,30 @@ export default function RideRequest() {
         <button
           disabled={!route}
           onClick={async () => {
-            await API.post("/rides/request", {
-              pickup,
-              drop,
-              seatsRequired: seats,
-              preferences: { vehicleType },
-              route: {
-                polyline: route.encoded,
-                distance: route.distance,
-                duration: route.duration,
-              },
-            });
-            alert("Ride requested, waiting for captains");
+            try {
+              const response = await API.post("/rides/request", {
+                pickup,
+                drop,
+                seatsRequired: seats,
+                preferences: { vehicleType },
+                route: {
+                  polyline: route.encoded,
+                  distance: route.distance,
+                  duration: route.duration,
+                },
+              });
+              
+              // ✅ Navigate to waiting page with rideId
+              const rideId = response.data.rideId;
+              if (rideId) {
+                navigate(`/rider/waiting/${rideId}`);
+              } else {
+                alert("Ride requested, but no ride ID received");
+              }
+            } catch (error) {
+              console.error("Error requesting ride:", error);
+              alert("Failed to request ride. Please try again.");
+            }
           }}
           className="w-full bg-green-600 text-white py-2 rounded-lg"
         >

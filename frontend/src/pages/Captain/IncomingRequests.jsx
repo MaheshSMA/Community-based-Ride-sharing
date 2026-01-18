@@ -1,28 +1,29 @@
 import { useEffect, useState } from "react";
 import socket from "../../services/socket";
+import ChatWindow from "../../components/Chat/ChatWindow";
+
 
 export default function IncomingRequests() {
   const [requests, setRequests] = useState([]);
+  const [activeChat, setActiveChat] = useState(null); // { rideId, riderId }
+  const [captainId, setCaptainId] = useState(null); // Add this line
+
 
   useEffect(() => {
-    console.log("🔵 IncomingRequests: useEffect started");
-    console.log("🔵 Socket connected status:", socket.connected);
-    console.log("🔵 Socket ID:", socket.id);
-
-
+    
     const setupConnection = () => {
       if (!socket.connected) {
-        console.log("🔵 Socket not connected, connecting...");
+        // console.log("🔵 Socket not connected, connecting...");
         socket.connect();
         
         // Wait for connection event
         socket.once("connect", () => {
-          console.log("✅ Socket connected! ID:", socket.id);
+          // console.log("✅ Socket connected! ID:", socket.id);
           setupListeners();
           joinCaptainRoom();
         });
       } else {
-        console.log("✅ Socket already connected");
+        // console.log("✅ Socket already connected");
         setupListeners();
         joinCaptainRoom();
       }
@@ -38,8 +39,8 @@ export default function IncomingRequests() {
 
       try {
         const captainId = JSON.parse(atob(token.split(".")[1])).userId;
-        console.log("🔵 Joining captain room with ID:", captainId);
-        console.log("🔵 Captain ID type:", typeof captainId);
+        // console.log("🔵 Joining captain room with ID:", captainId);
+        // console.log("🔵 Captain ID type:", typeof captainId);
         
         socket.emit("captain:join", { captainId }, (ack) => {
           console.log("✅ Captain join acknowledgment:", ack);
@@ -51,14 +52,14 @@ export default function IncomingRequests() {
 
     // Step 3: Set up listeners
     const setupListeners = () => {
-      console.log("🔵 Setting up socket listeners...");
+      // console.log("🔵 Setting up socket listeners...");
       
       // Remove any existing listeners first to avoid duplicates
       socket.off("ride:request");
       
       // Set up the listener
       socket.on("ride:request", (data) => {
-        console.log("✅✅✅ RECEIVED RIDE REQUEST:", data);
+        // console.log("✅✅✅ RECEIVED RIDE REQUEST:", data);
         setRequests((prev) => [...prev, data]);
       });
 
@@ -110,19 +111,79 @@ export default function IncomingRequests() {
   }, []);
 
   const respond = (rideId, decision, overlap) => {
-    socket.emit("ride:decision", {
+    console.log("entered respond");
+    console.log("🔵 respond() called with:", { rideId, decision, overlap });
+    
+    // Check socket connection status
+    console.log("🔵 Socket connected:", socket.connected);
+    console.log("🔵 Socket ID:", socket.id);
+    
+    // Extract captainId
+    const token = localStorage.getItem("token");
+    if (!token) {
+      console.error("❌ No token found in respond()");
+      return;
+    }
+    
+    let captainId;
+    try {
+      captainId = JSON.parse(atob(token.split(".")[1])).userId;
+      setCaptainId(captainId); // Store captainId in state
+      console.log("🔵 Captain ID extracted:", captainId);
+    } catch (error) {
+      console.error("❌ Error parsing token in respond():", error);
+      return;
+    }
+    
+    const eventData = {
       rideId,
-      captainId: JSON.parse(
-        atob(localStorage.getItem("token").split(".")[1])
-      ).userId,
+      captainId,
       decision,
       overlap,
+    };
+    
+    console.log("📤 Emitting ride:decision event with data:", eventData);
+    
+    // Emit the event
+    socket.emit("ride:decision", eventData, (ack) => {
+      console.log("✅ ride:decision acknowledgment received:", ack);
+
+      // If accepted, open chat
+    if (decision === "ACCEPTED") {
+      console.log("accepted on the captain side, opening the chat window");
+      setActiveChat({ rideId, captainId }); // You might need riderId from request
+    }
     });
+    
+    
+    console.log("📤 Event emitted (waiting for acknowledgment...)");
   };
 
   return (
     <div className="p-6 space-y-4">
       <h2 className="text-xl font-semibold">Incoming Ride Requests</h2>
+
+      {/* ✅ Chat Window - Show at top when active */}
+      {activeChat && captainId && (
+        <div className="mb-6 border rounded-lg p-4 bg-white shadow-lg">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-semibold text-lg">Active Chat</h3>
+            <button
+              onClick={() => setActiveChat(null)}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              ✕ Close
+            </button>
+          </div>
+          <ChatWindow
+            rideId={activeChat.rideId}
+            captainId={activeChat.captainId}
+            userId={captainId}
+            userName="Captain"
+            otherUserName="Rider"
+          />
+        </div>
+      )}
 
       {requests.map((r) => (
         <div
@@ -149,6 +210,7 @@ export default function IncomingRequests() {
           </div>
         </div>
       ))}
+
     </div>
   );
 }

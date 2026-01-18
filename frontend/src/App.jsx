@@ -5,6 +5,8 @@ import RouteSetup from "./pages/Captain/RouteSetup";
 import { isLoggedIn } from "./utils/auth";
 import RideRequest from "./pages/Rider/RideRequest";
 import IncomingRequests from "./pages/Captain/IncomingRequests";
+import Waiting from "./pages/Rider/Waiting";
+
 
 
 function ProtectedRoute({ children }) {
@@ -51,6 +53,15 @@ function App() {
         element={
           <ProtectedRoute>
             <IncomingRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/rider/waiting/:rideId"
+        element={
+          <ProtectedRoute>
+            <Waiting />
           </ProtectedRoute>
         }
       />
