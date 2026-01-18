@@ -139,7 +139,7 @@ export default function RideRequest() {
                     alert("Failed to request ride. Please try again.");
                   }
                 }}
-                className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200 disabled:bg-black-300 disabled:cursor-not-allowed"
               >
                 Request Ride
               </button>

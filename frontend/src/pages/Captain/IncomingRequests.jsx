@@ -260,9 +260,9 @@ export default function IncomingRequests() {
 
         {/* ✅ Chat Window & Ride Tracking - Side by side when active */}
         {activeChat && captainId && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-12rem)]">
             {/* Chat Window */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200 flex flex-col h-full">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-lg text-gray-900">Active Chat</h3>
                 <button
@@ -272,19 +272,21 @@ export default function IncomingRequests() {
                   ✕ Close
                 </button>
               </div>
-              <ChatWindow
-                rideId={activeChat.rideId}
-                captainId={activeChat.captainId}
-                userId={captainId}
-                userName="Captain"
-                otherUserName="Rider"
-              />
+              <div className="flex-1 overflow-hidden">
+                <ChatWindow
+                  rideId={activeChat.rideId}
+                  captainId={activeChat.captainId}
+                  userId={captainId}
+                  userName="Captain"
+                  otherUserName="Rider"
+                />
+              </div>
             </div>
 
             {/* Ride Tracking Map */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200 flex flex-col h-full">
               <h3 className="font-bold text-lg text-gray-900 mb-4">Ride Tracking</h3>
-              <div className="rounded-xl overflow-hidden border border-gray-200">
+              <div className="flex-1 rounded-xl overflow-hidden border border-gray-200">
                 <RideTrackingMap 
                   riderLocation={riderLocation} 
                   captainLocation={captainLocation} 
@@ -296,7 +298,7 @@ export default function IncomingRequests() {
 
         {/* Only show requests if no active chat */}
         {!activeChat && (
-          <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {requests.map((r) => (
               <div
                 key={r.rideId}
@@ -313,24 +315,24 @@ export default function IncomingRequests() {
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex flex-col gap-3">
                   <button
                     onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
-                    className="flex-1 bg-green-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200"
+                    className="w-full bg-green-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200"
                   >
                     Accept
                   </button>
 
                   <button
                     onClick={() => respond(r.rideId, "REJECTED", r.overlap)}
-                    className="flex-1 bg-red-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all duration-200"
+                    className="w-full bg-red-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 transition-all duration-200"
                   >
                     Reject
                   </button>
                 </div>
               </div>
             ))}
-          </>
+          </div>
         )}
       </div>
     </div>
