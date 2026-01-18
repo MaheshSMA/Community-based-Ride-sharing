@@ -3,7 +3,7 @@ const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { Server } = require("socket.io");
-const { captainLocations } = require("./store/captainLocation.store");
+const { captainLocations , updateCaptainLocation } = require("./store/captainLocation.store");
 const { setIO } = require("./socket");
 
 const PORT = process.env.PORT || 5000;
@@ -25,11 +25,21 @@ io.on("connection", (socket) => {
 
   // Captain joins personal room
   socket.on("captain:join", ({ captainId }) => {
-    socket.join(`captain:${captainId}`);
+    console.log("🔵 Captain join received:", captainId);
+    console.log("🔵 Captain ID type:", typeof captainId);
+    console.log("🔵 Socket ID:", socket.id);
+    
+    const roomName = `captain:${captainId}`;
+    socket.join(roomName);
+    
+    // Verify join
+    const room = io.sockets.adapter.rooms.get(roomName);
+    console.log(`✅ Captain ${captainId} joined room ${roomName}`);
+    console.log(`✅ Sockets in room now:`, room ? room.size : 0);
   });
 
   socket.on("captain:location", ({ captainId, lat, lng }) => {
-    captainLocations.set(captainId, { lat, lng });
+    updateCaptainLocation(captainId, lat, lng);
   });
 
   // Rider joins ride room
@@ -38,12 +48,29 @@ io.on("connection", (socket) => {
   });
 
   // Captain decision
+  // In server.js, update the ride:decision handler:
   socket.on("ride:decision", ({ rideId, captainId, decision, overlap }) => {
-    io.to(`ride:${rideId}`).emit("ride:update", {
-      captainId,
-      decision, // ACCEPTED / REJECTED
-      overlap,
-    });
+  console.log("📥 Received ride:decision event");
+  console.log("📥 Data:", { rideId, captainId, decision, overlap });
+  console.log("📥 Socket ID:", socket.id);
+
+  // if (callback) {
+  //   callback({ 
+  //     success: true, 
+  //     message: "Decision received",
+  //     rideId,
+  //     decision 
+  //   });
+  //   console.log("✅ Acknowledgment sent to client");
+  // }
+  
+  io.to(`ride:${rideId}`).emit("ride:update", {
+    captainId,
+    decision, // ACCEPTED / REJECTED
+    overlap,
+  });
+  
+  console.log("✅ Sent ride:update to room:", `ride:${rideId}`);
   });
 
   socket.on("disconnect", (reason) => {

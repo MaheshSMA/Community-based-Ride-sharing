@@ -14,11 +14,27 @@ exports.requestRide = async (req, res) => {
     status: "MATCHING",
   });
 
+  
+
   const matches = await findEligibleCaptains(ride);
   console.log("MATCHES FOUND:", matches);
 
   matches.forEach((m) => {
-    io.to(`captain:${m.captainId}`).emit("ride:request", {
+    const roomName = `captain:${m.captainId}`;
+    console.log("📤 Sending ride:request to room:", roomName);
+    console.log("📤 Captain ID:", m.captainId);
+    console.log("📤 Captain ID type:", typeof m.captainId);
+    
+    // Check if room exists and has sockets
+    const room = io.sockets.adapter.rooms.get(roomName);
+    const socketCount = room ? room.size : 0;
+    console.log(`📤 Sockets in room ${roomName}:`, socketCount);
+    
+    if (socketCount === 0) {
+      console.warn("⚠️ WARNING: No sockets in room! Event will not be delivered.");
+    }
+    
+    io.to(roomName).emit("ride:request", {
       rideId: ride._id,
       pickup: ride.pickup,
       drop: ride.drop,
@@ -26,6 +42,8 @@ exports.requestRide = async (req, res) => {
       seatsRequired: ride.seatsRequired,
       matchedRoute: m.matchedRoute,
     });
+    
+    console.log("✅ Event emitted to room:", roomName);
   });
 
   res.json({ rideId: ride._id });

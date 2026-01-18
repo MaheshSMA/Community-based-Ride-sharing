@@ -6,11 +6,16 @@ exports.findEligibleCaptains = async (ride) => {
   if (!captainLocations) {
     throw new Error("captainLocations store not initialized");
   }
-
+  console.log("before");
+  const allcaptains = await User.find();
+  console.log(allcaptains);
   const captains = await User.find({
     activeRole: "CAPTAIN",
     "captainProfile.isAvailable": true,
   });
+  console.log("after");
+  console.log("CAPTAINS:", captains);
+  
 
   const riderRoute = JSON.parse(ride.route.polyline);
 
@@ -34,6 +39,7 @@ exports.findEligibleCaptains = async (ride) => {
 
     // Try each captain route
     for (let route of captain.captainProfile.routes) {
+      
       const captainRoute = JSON.parse(route.polyline);
 
       // prepend current location
