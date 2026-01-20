@@ -6,12 +6,15 @@ exports.findEligibleCaptains = async (ride) => {
   if (!captainLocations) {
     throw new Error("captainLocations store not initialized");
   }
+  console.log(ride);
   console.log("before");
   const allcaptains = await User.find();
   console.log(allcaptains);
   const captains = await User.find({
     activeRole: "CAPTAIN",
     "captainProfile.isAvailable": true,
+    "community.name": ride.communityName,
+    isCommunityVerified: true,
   });
   console.log("after");
   console.log("CAPTAINS:", captains);

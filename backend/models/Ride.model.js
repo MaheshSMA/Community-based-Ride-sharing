@@ -8,6 +8,11 @@ const RideSchema = new mongoose.Schema(
       required: true,
     },
 
+    communityName: {
+      type: String,
+      required: true,
+    },
+
     pickup: {
       lat: Number,
       lng: Number,

@@ -7,9 +7,22 @@ const { getIO } = require("../socket");
 
 exports.requestRide = async (req, res) => {
   const io = getIO(); // ✅ always fresh, always initialized
+  // Get community info from authenticated user (req.user is set by auth middleware)
+    const communityId = req.user.community?.communityId;
+    const communityName = req.user.community?.name;
+
+    if (!communityId) {
+      return res.status(400).json({
+        success: false,
+        message: "User must setup community before requesting a ride"
+      });
+    }
 
   const ride = await Ride.create({
+
     rider: req.user._id,
+    communityId,
+    communityName,
     ...req.body,
     status: "MATCHING",
   });
