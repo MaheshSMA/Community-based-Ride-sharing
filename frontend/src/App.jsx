@@ -6,6 +6,8 @@ import { isLoggedIn } from "./utils/auth";
 import RideRequest from "./pages/Rider/RideRequest";
 import IncomingRequests from "./pages/Captain/IncomingRequests";
 import Waiting from "./pages/Rider/Waiting";
+import CommunitySetup from "./pages/CommunitySetup";
+
 
 
 
@@ -29,6 +31,8 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      <Route path="/community-setup" element={<CommunitySetup />} />
 
       <Route
         path="/captain/routes"

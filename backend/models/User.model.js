@@ -87,7 +87,27 @@ const UserSchema = new mongoose.Schema(
     },
 
     community: {
-      type: String, // college / office id later
+      name: {
+        type: String,
+        required: false,
+        trim: true,
+      },
+      communityId: {
+        type: String,
+        required: false,
+        unique: true,
+        sparse: true, // Allows multiple null values
+      },
+      joinedAt: {
+        type: Date,
+        default: null,
+      },
+    },
+
+    // Verification status
+    isCommunityVerified: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }

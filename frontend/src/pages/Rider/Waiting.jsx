@@ -62,7 +62,7 @@ export default function Waiting() {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
-            setRiderLocation({ lat:12.9757079 + latitude, lng: 77.5728757 + longitude });
+            setRiderLocation({ lat:12.9355559, lng: 77.5120187 });
             console.log("rider location updated:", { riderLocation: { lat: latitude, lng: longitude } });
             
             if (rideId) {

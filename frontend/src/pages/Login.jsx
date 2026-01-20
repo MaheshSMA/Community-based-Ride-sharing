@@ -29,7 +29,7 @@ export default function Login() {
     const res = await API.post("/auth/verify-otp", { phone, otp });
     localStorage.setItem("token", res.data.token);
     alert("Logged in");
-    navigate("/",{replace : true});
+    navigate("/community-setup",{replace : true});
   };
 
   return (
