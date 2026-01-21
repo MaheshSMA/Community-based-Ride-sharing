@@ -10,7 +10,36 @@ export default function IncomingRequests() {
   const [captainId, setCaptainId] = useState(null); // Add this line
   const [riderLocation, setRiderLocation] = useState(null);
   const [captainLocation, setCaptainLocation] = useState(null);
+  const [captainRating, setCaptainRating] = useState(4);
+  const [riderRatings, setRiderRatings] = useState({});
 
+  const fetchRiderRating = async (riderId) => {
+    try {
+      const response = await API.get(`/user/${riderId}`);
+      setRiderRatings(prev => ({
+        ...prev,
+        [riderId]: response.data.rating
+      }));
+    } catch (error) {
+      console.error("Error fetching rider rating:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch captain's rating
+    const fetchCaptainRating = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const captainId = JSON.parse(atob(token.split(".")[1])).userId;
+        const response = await API.get(`/user/${captainId}`);
+        setCaptainRating(response.data.rating);
+      } catch (error) {
+        console.error("Error fetching captain rating:", error);
+      }
+    };
+
+    fetchCaptainRating();
+  }, []);
 
   useEffect(() => {
     
@@ -64,6 +93,9 @@ export default function IncomingRequests() {
       // Set up the listener
       socket.on("ride:request", (data) => {
         // console.log("✅✅✅ RECEIVED RIDE REQUEST:", data);
+        if (data.userId) {
+          fetchRiderRating(data.userId);
+        }
         setRequests((prev) => [...prev, data]);
       });
 
@@ -85,6 +117,12 @@ export default function IncomingRequests() {
       // });
 
       // Debug: Listen to all events
+
+      socket.on("captain:location", (data) => {
+        console.log("📍 Captain location updated:", data);
+        setCaptainLocation({ lat: data.lat, lng: data.lng });
+      });
+
       socket.onAny((eventName, ...args) => {
         console.log("📨 Socket event received:", eventName, args);
       });
@@ -255,7 +293,12 @@ export default function IncomingRequests() {
       {/* Content */}
       <div className="relative z-10 p-6 space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Incoming Ride Requests</h2>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Incoming Ride Requests</h2>
+            </div>
+            <p className="text-sm font-semibold text-yellow-600">Your Rating: ⭐ {captainRating.toFixed(2)}</p>
+          </div>
         </div>
 
         {/* ✅ Chat Window & Ride Tracking - Side by side when active */}
@@ -279,7 +322,16 @@ export default function IncomingRequests() {
                   userId={captainId}
                   userName="Captain"
                   otherUserName="Rider"
-                />
+                  />
+                 <div className="flex gap-3 mt-4">
+                  <button className="flex-1 bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
+                    Start Ride
+                  </button>
+
+                  <button className="flex-1 bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200">
+                    End Ride
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -293,8 +345,11 @@ export default function IncomingRequests() {
                 />
               </div>
             </div>
+
           </div>
         )}
+
+       
 
         {/* Only show requests if no active chat */}
         {!activeChat && (
@@ -305,6 +360,12 @@ export default function IncomingRequests() {
                 className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200 hover:shadow-xl transition-all duration-200"
               >
                 <div className="space-y-2 mb-4">
+                  <div className="flex justify-between items-start">
+                    <p className="text-gray-700">
+                      <span className="text-gray-600">Rider Rating:</span>
+                    </p>
+                    <p className="font-bold text-yellow-600">⭐ {riderRatings[r.userId]?.toFixed(2) || 'Loading...'}</p>
+                  </div>
                   <p className="text-gray-700">
                     <span className="text-gray-600">Overlap:</span> 
                     <span className="font-bold text-gray-900 ml-2">{r.overlap.toFixed(1)}%</span>

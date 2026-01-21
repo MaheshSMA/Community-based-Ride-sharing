@@ -13,6 +13,8 @@ export default function Waiting() {
   const [userName, setUserName] = useState("Rider");
   const [riderLocation, setRiderLocation] = useState(null);
   const [captainLocation, setCaptainLocation] = useState(null);
+  const [riderRating, setRiderRating] = useState(4);
+  const [captainRatings, setCaptainRatings] = useState({});
 
   useEffect(() => {
     // Get user info from token
@@ -27,6 +29,35 @@ export default function Waiting() {
       }
     }
   }, []);
+
+  const fetchCaptainRating = async (captainId) => {
+    try {
+      const response = await API.get(`/user/${captainId}`);
+      setCaptainRatings(prev => ({
+        ...prev,
+        [captainId]: response.data.rating
+      }));
+    } catch (error) {
+      console.error("Error fetching captain rating:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Fetch rider's rating
+    const fetchRiderRating = async () => {
+      try {
+        const response = await API.get(`/user/${userId}`);
+        setRiderRating(response.data.rating);
+      } catch (error) {
+        console.error("Error fetching rider rating:", error);
+      }
+    };
+
+    if (userId) {
+      fetchRiderRating();
+    }
+  }, [userId]);
+
 
   // Get rider's current location and emit it
   useEffect(() => {
@@ -128,6 +159,8 @@ export default function Waiting() {
     };
   }, [rideId, acceptedCaptain]);
 
+  
+
   return (
     <div className="min-h-screen relative">
       {/* Background Image */}
@@ -145,6 +178,7 @@ export default function Waiting() {
         <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900">Captains Responding</h2>
           <p className="text-sm text-gray-600 mt-2">Ride ID: {rideId}</p>
+          <p className="text-sm text-blue-600 mt-2 font-semibold">Your Rating: ⭐ {riderRating.toFixed(2)}</p>
         </div>
 
         {/* Show chat and map if captain accepted */}
@@ -190,7 +224,10 @@ export default function Waiting() {
             <div className="space-y-3">
               {responses.map((r, idx) => (
                 <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
-                  <p className="font-semibold text-gray-900">Captain: {r.captainId}</p>
+                  <div className="flex justify-between items-start mb-2">
+                    <p className="font-semibold text-gray-900">Captain: {r.captainId}</p>
+                    <p className="text-sm font-semibold text-yellow-600">⭐ {captainRatings[r.captainId]?.toFixed(2) || 'Loading...'}</p>
+                  </div>
                   <p className={r.decision === "ACCEPTED" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
                     Status: {r.decision}
                   </p>

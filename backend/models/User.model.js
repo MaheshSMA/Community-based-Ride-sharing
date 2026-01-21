@@ -27,6 +27,11 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
 
+    rating:{
+      type:Number,
+      default: 4,
+    },
+
     otp: {
       code: String,
       expiresAt: Date,

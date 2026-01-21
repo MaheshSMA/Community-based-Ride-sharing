@@ -1,9 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
-const { switchRole } = require("../controllers/user.controller");
+const { switchRole, updateRating, getUser } = require("../controllers/user.controller");
 
 router.post("/switch-role", auth, switchRole);
+
+router.post("/update-rating", auth, updateRating);
+
+router.get("/:userId", getUser);
 
 router.post("/setup-community", auth, async (req, res) => {
   try {

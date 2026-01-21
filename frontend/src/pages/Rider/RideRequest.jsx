@@ -24,6 +24,46 @@ export default function RideRequest() {
     }
   };
 
+  const handleRequestRide = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("No token found. Please login again.");
+        return;
+      }
+
+      const userId = JSON.parse(atob(token.split(".")[1])).userId;
+
+      // Update rider's rating (+0.05 for requesting a ride)
+      await API.post("/user/update-rating", {
+        targetUserId: userId,
+        points: 0.05
+      });
+
+      const response = await API.post("/rides/request", {
+        pickup,
+        drop,
+        seatsRequired: seats,
+        preferences: { vehicleType },
+        route: {
+          polyline: route.encoded,
+          distance: route.distance,
+          duration: route.duration,
+        },
+      });
+      
+      const rideId = response.data.rideId;
+      if (rideId) {
+        navigate(`/rider/waiting/${rideId}`);
+      } else {
+        alert("Ride requested, but no ride ID received");
+      }
+    } catch (error) {
+      console.error("Error requesting ride:", error);
+      alert("Failed to request ride. Please try again.");
+    }
+  };
+
   return (
     <div className="min-h-screen relative">
       {/* Background Image */}
@@ -113,32 +153,7 @@ export default function RideRequest() {
 
               <button
                 disabled={!route}
-                onClick={async () => {
-                  try {
-                    const response = await API.post("/rides/request", {
-                      pickup,
-                      drop,
-                      seatsRequired: seats,
-                      preferences: { vehicleType },
-                      route: {
-                        polyline: route.encoded,
-                        distance: route.distance,
-                        duration: route.duration,
-                      },
-                    });
-                    
-                    // ✅ Navigate to waiting page with rideId
-                    const rideId = response.data.rideId;
-                    if (rideId) {
-                      navigate(`/rider/waiting/${rideId}`);
-                    } else {
-                      alert("Ride requested, but no ride ID received");
-                    }
-                  } catch (error) {
-                    console.error("Error requesting ride:", error);
-                    alert("Failed to request ride. Please try again.");
-                  }
-                }}
+                onClick={handleRequestRide}
                 className="w-full bg-green-600 text-white font-semibold py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200 disabled:bg-black-300 disabled:cursor-not-allowed"
               >
                 Request Ride
