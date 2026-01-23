@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
 import RideTrackingMap from "../../components/Map/RideTrackingMap";
 import quickrideImg from "../../assets/quickride-share.png";
+import API from "../../services/api";
+
 
 export default function Waiting() {
   const { rideId } = useParams();
@@ -15,15 +17,17 @@ export default function Waiting() {
   const [captainLocation, setCaptainLocation] = useState(null);
   const [riderRating, setRiderRating] = useState(4);
   const [captainRatings, setCaptainRatings] = useState({});
+  const [rideEnded, setRideEnded] = useState(false); // Track if ride has ended
+  const [showRatingModal, setShowRatingModal] = useState(false); // Show/hide rating modal
+  const [rating, setRating] = useState(5); // Selected rating
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Get user info from token
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split(".")[1]));
         setUserId(payload.userId);
-        // You might want to fetch user name from API
       } catch (error) {
         console.error("Error parsing token:", error);
       }
@@ -43,7 +47,6 @@ export default function Waiting() {
   };
 
   useEffect(() => {
-    // Fetch rider's rating
     const fetchRiderRating = async () => {
       try {
         const response = await API.get(`/user/${userId}`);
@@ -58,13 +61,10 @@ export default function Waiting() {
     }
   }, [userId]);
 
-
-  // Get rider's current location and emit it
   useEffect(() => {
     if (!userId) return;
     if(!rideId) console.error("No rideId available for emitting rider location");
 
-    // Get current location
     if (navigator.geolocation) {
       console.log("entered navigator.geolocation");
       console.log("rideId:", rideId);
@@ -73,7 +73,6 @@ export default function Waiting() {
           const { latitude, longitude } = position.coords;
           setRiderLocation({ lat: latitude, lng: longitude });
           
-          // Emit rider location to socket
           if (rideId) {
             socket.emit("rider:location", {
               rideId,
@@ -88,20 +87,19 @@ export default function Waiting() {
         }
       );
 
-      // Update location every 5 seconds
       const locationInterval = setInterval(() => {
         navigator.geolocation.getCurrentPosition(
           (position) => {
             const { latitude, longitude } = position.coords;
-            setRiderLocation({ lat:12.9355559, lng: 77.5120187 });
+            setRiderLocation({ lat: latitude, lng: longitude });
             console.log("rider location updated:", { riderLocation: { lat: latitude, lng: longitude } });
             
             if (rideId) {
               socket.emit("rider:location", {
                 rideId,
                 userId,
-                lat: latitude + 12.9757079,
-                lng: longitude + 77.5728757,
+                lat: latitude,
+                lng: longitude,
               });
             }
           },
@@ -133,20 +131,17 @@ export default function Waiting() {
     socket.on("ride:update", (data) => {
       console.log("✅ Received ride:update:", data);
       setResponses((prev) => {
-        // Check for duplicates
         const exists = prev.some(r => r.captainId === data.captainId);
         if (exists) return prev;
         return [...prev, data];
       });
 
-      // If accepted, set the accepted captain
       if (data.decision === "ACCEPTED" && !acceptedCaptain) {
         setAcceptedCaptain(data.captainId);
         console.log("✅ Captain accepted! Opening chat:", data.captainId);
       }
     });
 
-    // Listen for captain location updates
     socket.on("captain:location", (data) => {
       console.log("📍 Captain location updated:", data);
       setCaptainLocation({ lat: data.lat, lng: data.lng });
@@ -159,7 +154,27 @@ export default function Waiting() {
     };
   }, [rideId, acceptedCaptain]);
 
-  
+  const handleEndRide = () => {
+    setRideEnded(true);
+    console.log("Ride ended");
+  };
+
+  const handleRateClick = () => {
+    setShowRatingModal(true);
+    
+  };
+
+  const handleSubmitRating = async () => {
+    try {
+      navigate("/rider/request");
+      
+      console.log(`✅ Rated captain ${acceptedCaptain} with ${rating} stars`);
+      setShowRatingModal(false);
+      // Optionally show success message
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen relative">
@@ -194,6 +209,29 @@ export default function Waiting() {
                 userName={userName}
                 otherUserName="Captain"
               />
+
+              <div className="flex flex-col gap-3 mt-4">
+                <button className="w-full bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
+                  Start Ride
+                </button>
+
+                <button 
+                  onClick={handleEndRide}
+                  className="w-full bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200"
+                >
+                  End Ride
+                </button>
+
+                {/* Rate Captain Button - Only show after ride ends */}
+                {rideEnded && (
+                  <button 
+                    onClick={handleRateClick}
+                    className="w-full bg-yellow-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 transition-all duration-200"
+                  >
+                    ⭐ Rate the Captain
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Ride Tracking Map */}
@@ -238,6 +276,50 @@ export default function Waiting() {
           </div>
         )}
       </div>
+
+      {/* Rating Modal */}
+      {showRatingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl border border-gray-200 max-w-md w-full mx-4">
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">Rate the Captain</h3>
+            <p className="text-gray-600 mb-6">How was your ride experience?</p>
+
+            {/* Star Rating */}
+            <div className="flex justify-center gap-2 mb-6">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setRating(star)}
+                  className={`text-4xl transition-all duration-200 ${
+                    star <= rating ? "text-yellow-400" : "text-gray-300"
+                  } hover:text-yellow-400`}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+
+            <p className="text-center text-lg font-semibold text-gray-900 mb-6">
+              {rating} Star{rating !== 1 ? 's' : ''}
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRatingModal(false)}
+                className="flex-1 bg-gray-300 text-gray-900 font-semibold px-4 py-3 rounded-lg hover:bg-gray-400 transition-all duration-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitRating}
+                className="flex-1 bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 transition-all duration-200"
+              >
+                Submit Rating
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
