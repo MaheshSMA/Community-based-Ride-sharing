@@ -4,11 +4,14 @@ import ChatWindow from "../../components/Chat/ChatWindow";
 import RideTrackingMap from "../../components/Map/RideTrackingMap";
 import quickrideImg from "../../assets/quickride-share.png";
 import { Link } from "react-router-dom";
+import API from "../../services/api";
 
 export default function IncomingRequests() {
   const [requests, setRequests] = useState([]);
   const [activeChat, setActiveChat] = useState(null); // { rideId, riderId }
   const [captainId, setCaptainId] = useState(null); // Add this line
+  const [rideStarted, setRideStarted] = useState(false);
+  const [rideEnded, setRideEnded] = useState(false);
   const [riderLocation, setRiderLocation] = useState(null);
   const [captainLocation, setCaptainLocation] = useState(null);
   const [captainRating, setCaptainRating] = useState(4);
@@ -230,9 +233,23 @@ export default function IncomingRequests() {
       }
     }, [activeChat, captainId]);
 
-  const respond = (rideId, decision, overlap) => {
+  const handleStartRide = () => {
+    setRideStarted(true);
+    if (socket.connected && activeChat?.rideId && captainId) {
+      socket.emit("ride:started", {
+        rideId: activeChat.rideId,
+        captainId,
+      });
+    }
+  };
+
+  const handleEndRide = () => {
+    setRideEnded(true);
+  };
+
+  const respond = (rideId, decision, overlap, matchedRoute) => {
     console.log("entered respond");
-    console.log("🔵 respond() called with:", { rideId, decision, overlap });
+    console.log("🔵 respond() called with:", { rideId, decision, overlap, matchedRoute });
     
     // Check socket connection status
     console.log("🔵 Socket connected:", socket.connected);
@@ -260,22 +277,20 @@ export default function IncomingRequests() {
       captainId,
       decision,
       overlap,
+      matchedRoute,
     };
     
     console.log("📤 Emitting ride:decision event with data:", eventData);
     
-    // Emit the event
     socket.emit("ride:decision", eventData, (ack) => {
       console.log("✅ ride:decision acknowledgment received:", ack);
 
-      // If accepted, open chat
-    if (decision === "ACCEPTED") {
-      console.log("accepted on the captain side, opening the chat window");
-      setActiveChat({ rideId, captainId }); // You might need riderId from request
-    }
+      if (decision === "ACCEPTED") {
+        console.log("accepted on the captain side, opening the chat window");
+        setActiveChat({ rideId, captainId });
+      }
     });
-    
-    
+
     console.log("📤 Event emitted (waiting for acknowledgment...)");
   };
 
@@ -333,12 +348,20 @@ export default function IncomingRequests() {
                   otherUserName="Rider"
                   />
                  <div className="flex gap-3 mt-4">
-                  <button className="flex-1 bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
-                    Start Ride
+                  <button
+                    onClick={handleStartRide}
+                    disabled={rideStarted}
+                    className="flex-1 bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rideStarted ? "Ride Started" : "Start Ride"}
                   </button>
 
-                  <button className="flex-1 bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200">
-                    End Ride
+                  <button
+                    onClick={handleEndRide}
+                    disabled={rideEnded}
+                    className="flex-1 bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rideEnded ? "Ride Ended" : "End Ride"}
                   </button>
                 </div>
               </div>
@@ -387,7 +410,7 @@ export default function IncomingRequests() {
 
                 <div className="flex flex-col gap-3">
                   <button
-                    onClick={() => respond(r.rideId, "ACCEPTED", r.overlap)}
+                    onClick={() => respond(r.rideId, "ACCEPTED", r.overlap, r.matchedRoute)}
                     className="w-full bg-green-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 transition-all duration-200"
                   >
                     Accept

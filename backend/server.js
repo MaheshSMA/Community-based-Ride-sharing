@@ -89,7 +89,7 @@ io.on("connection", (socket) => {
 
       if (ride && captain) {
         ride.captain = captainId;
-        ride.matchedRoute = matchedRoute; // Store the overlapping route
+        ride.matchedRoute = typeof matchedRoute === "object" ? JSON.stringify(matchedRoute) : matchedRoute; // Store the overlapping route
         ride.status = "ACCEPTED";
         
         // Store captain details
@@ -128,6 +128,11 @@ io.on("connection", (socket) => {
       callback({ success: false, message: error.message });
     }
   }
+  });
+
+  socket.on("ride:started", ({ rideId, captainId }) => {
+    console.log(`🚦 Ride started for ride ${rideId} by captain ${captainId}`);
+    io.to(`ride:${rideId}`).emit("ride:started", { rideId, captainId });
   });
 
   // Chat: Join chat room

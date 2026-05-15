@@ -18,6 +18,7 @@ export default function Waiting() {
   const [riderRating, setRiderRating] = useState(4);
   const [captainRatings, setCaptainRatings] = useState({});
   const [riderPoints, setRiderPoints] = useState(100);
+  const [rideStarted, setRideStarted] = useState(false);
   const [rideEnded, setRideEnded] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [rating, setRating] = useState(5);
@@ -186,14 +187,21 @@ export default function Waiting() {
     };
   }, [rideId, acceptedCaptain]);
 
+  const handleStartRide = () => {
+    setRideStarted(true);
+    if (socket.connected && rideId && acceptedCaptain) {
+      socket.emit("ride:started", {
+        rideId,
+        captainId: acceptedCaptain,
+      });
+    }
+  };
+
   const handleEndRide = async () => {
     try {
-      // Complete ride and calculate points
-      const distanceInKm = rideDistance / 1000;
-      await API.post(`/rides/${rideId}/complete`, { distanceInKm });
-      
-      // Transfer points
-      await API.post("/user/transfer-points", {
+      const distanceInKm = rideDistance > 0 ? rideDistance / 1000 : 0;
+      const completeResponse = await API.post(`/rides/${rideId}/complete`, { distanceInKm });
+      const transferResponse = await API.post("/user/transfer-points", {
         rideId,
         captainId: acceptedCaptain,
         riderId: userId,
@@ -201,7 +209,13 @@ export default function Waiting() {
       });
 
       setRideEnded(true);
-      console.log("Ride ended and points transferred");
+      setRideStarted(false);
+      setRiderPoints(transferResponse.data.riderNewBalance ?? Math.max(0, riderPoints - Math.ceil(distanceInKm)));
+
+      console.log("Ride ended and points transferred", {
+        pointsEarned: completeResponse.data.pointsEarned,
+        riderNewBalance: transferResponse.data.riderNewBalance,
+      });
     } catch (error) {
       console.error("Error ending ride:", error);
       alert("Error completing ride. Please try again.");
@@ -299,8 +313,12 @@ export default function Waiting() {
                 />
 
                 <div className="flex flex-col gap-3 mt-4">
-                  <button className="w-full bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
-                    Start Ride
+                  <button
+                    onClick={handleStartRide}
+                    disabled={rideStarted}
+                    className="w-full bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rideStarted ? "Ride Started" : "Start Ride"}
                   </button>
 
                   <button 

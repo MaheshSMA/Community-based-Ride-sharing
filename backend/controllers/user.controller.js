@@ -40,6 +40,7 @@ exports.getUser = async (req, res) => {
     res.json({
       success: true,
       rating: user.rating,
+      points: user.points ?? 100,
       name: user.name,
       phone: user.phone,
       activeRole: user.activeRole,
