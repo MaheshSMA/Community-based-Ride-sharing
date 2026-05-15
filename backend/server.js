@@ -72,28 +72,62 @@ io.on("connection", (socket) => {
 
   // Captain decision
   // In server.js, update the ride:decision handler:
-  socket.on("ride:decision", ({ rideId, captainId, decision, overlap },callback) => {
+  socket.on("ride:decision", async ({ rideId, captainId, decision, overlap, matchedRoute },callback) => {
   console.log("📥 Received ride:decision event");
   console.log("📥 Data:", { rideId, captainId, decision, overlap });
   console.log("📥 Socket ID:", socket.id);
 
-  if (callback && typeof callback === "function") {
-    callback({ 
-      success: true, 
-      message: "Decision received",
-      rideId,
-      decision 
+  try {
+    // If captain accepts, update ride with captain details
+    if (decision === "ACCEPTED") {
+      const Ride = require("./models/Ride.model");
+      const User = require("./models/User.model");
+
+      // Get ride and captain
+      const ride = await Ride.findById(rideId);
+      const captain = await User.findById(captainId);
+
+      if (ride && captain) {
+        ride.captain = captainId;
+        ride.matchedRoute = matchedRoute; // Store the overlapping route
+        ride.status = "ACCEPTED";
+        
+        // Store captain details
+        ride.captainDetails = {
+          name: captain.name,
+          phone: captain.phone,
+          rating: captain.rating,
+          vehicleDetails: captain.captainProfile?.vehicleDetails || {},
+        };
+
+        await ride.save();
+        console.log("✅ Ride updated with captain acceptance");
+      }
+    }
+
+    if (callback && typeof callback === "function") {
+      callback({ 
+        success: true, 
+        message: "Decision received",
+        rideId,
+        decision 
+      });
+      console.log("✅ Acknowledgment sent to client");
+    }
+  
+    io.to(`ride:${rideId}`).emit("ride:update", {
+      captainId,
+      decision, // ACCEPTED / REJECTED
+      overlap,
     });
-    console.log("✅ Acknowledgment sent to client");
+    
+    console.log("✅ Sent ride:update to room:", `ride:${rideId}`);
+  } catch (error) {
+    console.error("❌ Error in ride:decision:", error);
+    if (callback) {
+      callback({ success: false, message: error.message });
+    }
   }
-  
-  io.to(`ride:${rideId}`).emit("ride:update", {
-    captainId,
-    decision, // ACCEPTED / REJECTED
-    overlap,
-  });
-  
-  console.log("✅ Sent ride:update to room:", `ride:${rideId}`);
   });
 
   // Chat: Join chat room

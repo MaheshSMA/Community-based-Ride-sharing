@@ -7,6 +7,7 @@ import RideRequest from "./pages/Rider/RideRequest";
 import IncomingRequests from "./pages/Captain/IncomingRequests";
 import Waiting from "./pages/Rider/Waiting";
 import CommunitySetup from "./pages/CommunitySetup";
+import VehicleDetails from "./pages/Captain/VehicleDetails";
 
 
 
@@ -57,6 +58,15 @@ function App() {
         element={
           <ProtectedRoute>
             <IncomingRequests />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/captain/vehicle-details"
+        element={
+          <ProtectedRoute>
+            <VehicleDetails />
           </ProtectedRoute>
         }
       />

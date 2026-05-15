@@ -8,6 +8,23 @@ const RideSchema = new mongoose.Schema(
       required: true,
     },
 
+    // ---------- Captain Details (filled when accepted) ----------
+    captain: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+
+    captainDetails: {
+      name: String,
+      phone: String,
+      rating: Number,
+      vehicleDetails: {
+        number: String,
+        color: String,
+        model: String,
+      },
+    },
+
     communityName: {
       type: String,
       required: true,
@@ -48,9 +65,25 @@ const RideSchema = new mongoose.Schema(
       duration: Number, // seconds
     },
 
+    // ---------- Overlapping Route (for map display) ----------
+    matchedRoute: {
+      type: String, // polyline
+    },
+
+    // ---------- Points System ----------
+    pointsEarned: {
+      type: Number,
+      default: 0,
+    },
+
+    pointsTransferred: {
+      type: Boolean,
+      default: false,
+    },
+
     status: {
       type: String,
-      enum: ["REQUESTED", "MATCHING", "ACCEPTED", "CANCELLED"],
+      enum: ["REQUESTED", "MATCHING", "ACCEPTED", "CANCELLED", "COMPLETED"],
       default: "REQUESTED",
     },
   },

@@ -17,9 +17,14 @@ export default function Waiting() {
   const [captainLocation, setCaptainLocation] = useState(null);
   const [riderRating, setRiderRating] = useState(4);
   const [captainRatings, setCaptainRatings] = useState({});
-  const [rideEnded, setRideEnded] = useState(false); // Track if ride has ended
-  const [showRatingModal, setShowRatingModal] = useState(false); // Show/hide rating modal
-  const [rating, setRating] = useState(5); // Selected rating
+  const [riderPoints, setRiderPoints] = useState(100);
+  const [rideEnded, setRideEnded] = useState(false);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [rating, setRating] = useState(5);
+  const [matchedRoute, setMatchedRoute] = useState(null);
+  const [rideRoute, setRideRoute] = useState(null);
+  const [captainDetails, setCaptainDetails] = useState(null);
+  const [rideDistance, setRideDistance] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,11 +51,37 @@ export default function Waiting() {
     }
   };
 
+  const fetchRideDetails = async () => {
+    try {
+      const response = await API.get(`/rides/${rideId}`);
+      const ride = response.data.ride;
+      
+      if (ride) {
+        setRideRoute(ride.route?.polyline);
+        setRideDistance(ride.route?.distance || 0);
+        
+        if (ride.status === "ACCEPTED" || ride.status === "COMPLETED") {
+          setMatchedRoute(ride.matchedRoute);
+          setCaptainDetails(ride.captainDetails);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching ride details:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (rideId) {
+      fetchRideDetails();
+    }
+  }, [rideId, acceptedCaptain]);
+
   useEffect(() => {
     const fetchRiderRating = async () => {
       try {
         const response = await API.get(`/user/${userId}`);
         setRiderRating(response.data.rating);
+        setRiderPoints(response.data.points || 100);
       } catch (error) {
         console.error("Error fetching rider rating:", error);
       }
@@ -139,6 +170,7 @@ export default function Waiting() {
       if (data.decision === "ACCEPTED" && !acceptedCaptain) {
         setAcceptedCaptain(data.captainId);
         console.log("✅ Captain accepted! Opening chat:", data.captainId);
+        fetchRideDetails();
       }
     });
 
@@ -154,14 +186,30 @@ export default function Waiting() {
     };
   }, [rideId, acceptedCaptain]);
 
-  const handleEndRide = () => {
-    setRideEnded(true);
-    console.log("Ride ended");
+  const handleEndRide = async () => {
+    try {
+      // Complete ride and calculate points
+      const distanceInKm = rideDistance / 1000;
+      await API.post(`/rides/${rideId}/complete`, { distanceInKm });
+      
+      // Transfer points
+      await API.post("/user/transfer-points", {
+        rideId,
+        captainId: acceptedCaptain,
+        riderId: userId,
+        distanceInKm,
+      });
+
+      setRideEnded(true);
+      console.log("Ride ended and points transferred");
+    } catch (error) {
+      console.error("Error ending ride:", error);
+      alert("Error completing ride. Please try again.");
+    }
   };
 
   const handleRateClick = () => {
     setShowRatingModal(true);
-    
   };
 
   const handleSubmitRating = async () => {
@@ -170,7 +218,6 @@ export default function Waiting() {
       
       console.log(`✅ Rated captain ${acceptedCaptain} with ${rating} stars`);
       setShowRatingModal(false);
-      // Optionally show success message
     } catch (error) {
       console.error("Error submitting rating:", error);
     }
@@ -191,89 +238,139 @@ export default function Waiting() {
       {/* Content */}
       <div className="relative z-10 p-6 space-y-6">
         <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Captains Responding</h2>
-          <p className="text-sm text-gray-600 mt-2">Ride ID: {rideId}</p>
-          <p className="text-sm text-blue-600 mt-2 font-semibold">Your Rating: ⭐ {riderRating.toFixed(2)}</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Captains Responding</h2>
+              <p className="text-sm text-gray-600 mt-2">Ride ID: {rideId}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-blue-600 font-semibold">Your Rating: ⭐ {riderRating.toFixed(2)}</p>
+              <p className="text-sm text-green-600 font-semibold mt-1">Points: 🪙 {riderPoints}</p>
+            </div>
+          </div>
         </div>
 
         {/* Show chat and map if captain accepted */}
         {acceptedCaptain && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Chat Window */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
-              <h3 className="font-bold text-lg text-gray-900 mb-4">Chat with Captain</h3>
-              <ChatWindow
-                rideId={rideId}
-                captainId={acceptedCaptain}
-                userId={userId}
-                userName={userName}
-                otherUserName="Captain"
-              />
-
-              <div className="flex flex-col gap-3 mt-4">
-                <button className="w-full bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
-                  Start Ride
-                </button>
-
-                <button 
-                  onClick={handleEndRide}
-                  className="w-full bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200"
-                >
-                  End Ride
-                </button>
-
-                {/* Rate Captain Button - Only show after ride ends */}
-                {rideEnded && (
-                  <button 
-                    onClick={handleRateClick}
-                    className="w-full bg-yellow-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 transition-all duration-200"
-                  >
-                    ⭐ Rate the Captain
-                  </button>
-                )}
+          <>
+            {/* Captain Details Card */}
+            {captainDetails && (
+              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Captain Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-gray-600">Name</p>
+                    <p className="font-semibold text-gray-900">{captainDetails.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600">Rating</p>
+                    <p className="font-semibold text-yellow-600">⭐ {captainDetails.rating?.toFixed(2)}</p>
+                  </div>
+                  {captainDetails.vehicleDetails?.number && (
+                    <>
+                      <div>
+                        <p className="text-gray-600">Vehicle Number</p>
+                        <p className="font-semibold text-gray-900">{captainDetails.vehicleDetails.number}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Vehicle Color</p>
+                        <p className="font-semibold text-gray-900">{captainDetails.vehicleDetails.color}</p>
+                      </div>
+                      <div className="md:col-span-2">
+                        <p className="text-gray-600">Vehicle Model</p>
+                        <p className="font-semibold text-gray-900">{captainDetails.vehicleDetails.model}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Ride Tracking Map */}
-            <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
-              <h3 className="font-bold text-lg text-gray-900 mb-4">Ride Tracking</h3>
-              <div className="rounded-xl overflow-hidden border border-gray-200">
-                <RideTrackingMap 
-                  riderLocation={riderLocation} 
-                  captainLocation={captainLocation} 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Chat Window */}
+              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+                <h3 className="font-bold text-lg text-gray-900 mb-4">Chat with Captain</h3>
+                <ChatWindow
+                  rideId={rideId}
+                  captainId={acceptedCaptain}
+                  userId={userId}
+                  userName={userName}
+                  otherUserName="Captain"
                 />
+
+                <div className="flex flex-col gap-3 mt-4">
+                  <button className="w-full bg-blue-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 transition-all duration-200">
+                    Start Ride
+                  </button>
+
+                  <button 
+                    onClick={handleEndRide}
+                    disabled={rideEnded}
+                    className="w-full bg-orange-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rideEnded ? "Ride Completed" : "End Ride"}
+                  </button>
+
+                  {/* Rate Captain Button - Only show after ride ends */}
+                  {rideEnded && (
+                    <button 
+                      onClick={handleRateClick}
+                      className="w-full bg-yellow-600 text-white font-semibold px-4 py-3 rounded-lg hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 transition-all duration-200"
+                    >
+                      ⭐ Rate the Captain
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Ride Tracking Map */}
+              <div className="bg-white rounded-2xl p-6 shadow-2xl border border-gray-200">
+                <h3 className="font-bold text-lg text-gray-900 mb-4">Ride Tracking</h3>
+                <div className="text-sm text-gray-600 mb-2">
+                  🟢 Green: Overlapping route | 🔵 Blue: Your route | 🔴 Red: Captain's route
+                </div>
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <RideTrackingMap 
+                    riderLocation={riderLocation} 
+                    captainLocation={captainLocation}
+                    matchedRoute={matchedRoute}
+                    riderRoute={rideRoute}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Responses List */}
-        {responses.length === 0 ? (
-          <div className="bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
-            <p className="text-gray-600 text-center text-lg">Waiting for captains to respond...</p>
-            <div className="mt-6 animate-pulse space-y-3">
-              <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+        {!acceptedCaptain && (
+          responses.length === 0 ? (
+            <div className="bg-white p-8 rounded-2xl shadow-2xl border border-gray-200">
+              <p className="text-gray-600 text-center text-lg">Waiting for captains to respond...</p>
+              <div className="mt-6 animate-pulse space-y-3">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">Responses:</h3>
-            <div className="space-y-3">
-              {responses.map((r, idx) => (
-                <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
-                  <div className="flex justify-between items-start mb-2">
-                    <p className="font-semibold text-gray-900">Captain: {r.captainId}</p>
-                    <p className="text-sm font-semibold text-yellow-600">⭐ {captainRatings[r.captainId]?.toFixed(2) || 'Loading...'}</p>
+          ) : (
+            <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">Responses:</h3>
+              <div className="space-y-3">
+                {responses.map((r, idx) => (
+                  <div key={idx} className="bg-gray-50 border border-gray-200 p-4 rounded-xl">
+                    <div className="flex justify-between items-start mb-2">
+                      <p className="font-semibold text-gray-900">Captain: {r.captainId}</p>
+                      <p className="text-sm font-semibold text-yellow-600">⭐ {captainRatings[r.captainId]?.toFixed(2) || 'Loading...'}</p>
+                    </div>
+                    <p className={r.decision === "ACCEPTED" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
+                      Status: {r.decision}
+                    </p>
+                    <p className="text-gray-700">Overlap: {r.overlap.toFixed(1)}%</p>
                   </div>
-                  <p className={r.decision === "ACCEPTED" ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                    Status: {r.decision}
-                  </p>
-                  <p className="text-gray-700">Overlap: {r.overlap.toFixed(1)}%</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )
         )}
       </div>
 

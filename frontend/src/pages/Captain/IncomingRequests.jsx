@@ -3,6 +3,7 @@ import socket from "../../services/socket";
 import ChatWindow from "../../components/Chat/ChatWindow";
 import RideTrackingMap from "../../components/Map/RideTrackingMap";
 import quickrideImg from "../../assets/quickride-share.png";
+import { Link } from "react-router-dom";
 
 export default function IncomingRequests() {
   const [requests, setRequests] = useState([]);
@@ -297,7 +298,15 @@ export default function IncomingRequests() {
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Incoming Ride Requests</h2>
             </div>
-            <p className="text-sm font-semibold text-yellow-600">Your Rating: ⭐ {captainRating.toFixed(2)}</p>
+            <div className="flex items-center gap-4">
+              <Link
+                to="/captain/vehicle-details"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-semibold"
+              >
+                Vehicle Details
+              </Link>
+              <p className="text-sm font-semibold text-yellow-600">Your Rating: ⭐ {captainRating.toFixed(2)}</p>
+            </div>
           </div>
         </div>
 

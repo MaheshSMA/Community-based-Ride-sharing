@@ -99,3 +99,75 @@ exports.updateRating = async (req, res) => {
     });
   }
 };
+
+exports.transferPoints = async (req, res) => {
+  try {
+    const { rideId, captainId, riderId, distanceInKm } = req.body;
+
+    if (!rideId || !captainId || !riderId || distanceInKm === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "rideId, captainId, riderId, and distanceInKm are required"
+      });
+    }
+
+    // Get Ride model
+    const Ride = require("../models/Ride.model");
+    const ride = await Ride.findById(rideId);
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: "Ride not found"
+      });
+    }
+
+    // Check if points already transferred
+    if (ride.pointsTransferred) {
+      return res.status(400).json({
+        success: false,
+        message: "Points already transferred for this ride"
+      });
+    }
+
+    // Calculate points: 1 point per km (rounded)
+    const pointsToTransfer = Math.ceil(distanceInKm);
+
+    // Get captain and rider
+    const captain = await User.findById(captainId);
+    const rider = await User.findById(riderId);
+
+    if (!captain || !rider) {
+      return res.status(404).json({
+        success: false,
+        message: "Captain or rider not found"
+      });
+    }
+
+    // Transfer points
+    captain.points = (captain.points || 100) + pointsToTransfer;
+    rider.points = Math.max(0, (rider.points || 100) - pointsToTransfer);
+
+    // Update ride
+    ride.pointsEarned = pointsToTransfer;
+    ride.pointsTransferred = true;
+
+    await captain.save();
+    await rider.save();
+    await ride.save();
+
+    res.json({
+      success: true,
+      message: "Points transferred successfully",
+      pointsTransferred: pointsToTransfer,
+      captainNewBalance: captain.points,
+      riderNewBalance: rider.points,
+    });
+  } catch (error) {
+    console.error("Error transferring points:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

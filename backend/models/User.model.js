@@ -32,6 +32,13 @@ const UserSchema = new mongoose.Schema(
       default: 4,
     },
 
+    // ---------- Points System ----------
+    points: {
+      type: Number,
+      default: 100,
+      min: 0,
+    },
+
     otp: {
       code: String,
       expiresAt: Date,
@@ -74,6 +81,22 @@ const UserSchema = new mongoose.Schema(
         type: Number,
         min: 1,
         max: 6,
+      },
+
+      // ---------- Vehicle Details ----------
+      vehicleDetails: {
+        number: {
+          type: String,
+          trim: true,
+        },
+        color: {
+          type: String,
+          trim: true,
+        },
+        model: {
+          type: String,
+          trim: true,
+        },
       },
 
       routes: [

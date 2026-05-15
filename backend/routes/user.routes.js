@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const auth = require("../middlewares/auth.middleware");
-const { switchRole, updateRating, getUser } = require("../controllers/user.controller");
+const { switchRole, updateRating, getUser, transferPoints } = require("../controllers/user.controller");
 
 router.post("/switch-role", auth, switchRole);
 
 router.post("/update-rating", auth, updateRating);
+
+router.post("/transfer-points", auth, transferPoints);
 
 router.get("/:userId", getUser);
 

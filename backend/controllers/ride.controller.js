@@ -62,3 +62,93 @@ exports.requestRide = async (req, res) => {
   res.json({ rideId: ride._id });
 };
 
+// Get ride details including captain info and matched route
+exports.getRideDetails = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+
+    const ride = await Ride.findById(rideId).populate("rider", "name phone rating").populate("captain", "name phone rating captainProfile");
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: "Ride not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      ride: {
+        _id: ride._id,
+        status: ride.status,
+        pickup: ride.pickup,
+        drop: ride.drop,
+        route: ride.route,
+        matchedRoute: ride.matchedRoute,
+        captainDetails: ride.captainDetails,
+        pointsEarned: ride.pointsEarned,
+        createdAt: ride.createdAt,
+        updatedAt: ride.updatedAt,
+      }
+    });
+  } catch (error) {
+    console.error("Error getting ride details:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+// Complete ride and transfer points
+exports.completeRide = async (req, res) => {
+  try {
+    const { rideId } = req.params;
+    const { distanceInKm } = req.body;
+
+    if (distanceInKm === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "distanceInKm is required"
+      });
+    }
+
+    const ride = await Ride.findById(rideId);
+
+    if (!ride) {
+      return res.status(404).json({
+        success: false,
+        message: "Ride not found"
+      });
+    }
+
+    if (ride.status === "COMPLETED") {
+      return res.status(400).json({
+        success: false,
+        message: "Ride already completed"
+      });
+    }
+
+    // Update ride status
+    ride.status = "COMPLETED";
+    
+    // Calculate points: 1 point per km
+    const pointsEarned = Math.ceil(distanceInKm);
+    ride.pointsEarned = pointsEarned;
+
+    await ride.save();
+
+    res.json({
+      success: true,
+      message: "Ride completed successfully",
+      pointsEarned,
+      ride
+    });
+  } catch (error) {
+    console.error("Error completing ride:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
